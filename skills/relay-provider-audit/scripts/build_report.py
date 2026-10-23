@@ -332,7 +332,7 @@ def external(ctx):
                           [[md(d["item"]) + (f'<br><span class="muted">{md(d["note"])}</span>' if d.get("note") else ""), md(d["official"]), md(d["supplier"])] for d in ds], cols=[24, 34, 42]))
     if groups: parts.append(f"<section>{h2('和官方的差异（按影响分级）')}" + "".join(groups) + "</section>")
     er = F.get("errors")
-    if er:
+    if er and er.get("rows"):
         parts.append(f'<section>{h2("参数与报错")}' + (f'<p class="sub">{md(er["intro"])}</p>' if er.get("intro") else "")
                      + tbl(["输入", "官方", sup], [[first(r["verdict"], r["label"], r["input"]), cell(r["official"]), f'<span class="muted small" style="font-family:var(--font-mono)">{cell(r["supplier"])}</span>'] for r in er["rows"]], cols=[24, 30, 46])
                      + (f'<p class="sub note">{md(er["note"])}</p>' if er.get("note") else "") + "</section>")
