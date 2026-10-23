@@ -10,3 +10,8 @@ audits/
 # 样例重新生成的产出（展示用 PDF 在 docs/samples/）
 skills/relay-provider-audit/assets/examples/*/artifacts/*.html
 skills/relay-provider-audit/assets/examples/*/artifacts/*.pdf
+.venv/
+*.mp4
+frames/
+*.c2pa.json
+*.comfy-prompt.json

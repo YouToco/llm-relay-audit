@@ -8,7 +8,7 @@
 
 ![生成的报告页面](docs/images/gallery-zh.png)
 
-上图每一页都是 `build_report.py` 从虚构样例 [`assets/examples/`](skills/relay-provider-audit/assets/examples/) 直接生成的，完整 PDF 在 [`docs/samples/`](docs/samples/)。
+上图每一页都是 `build_report.py` 从虚构样例 [`assets/examples/`](skills/relay-provider-audit/assets/examples/) 直接生成的，完整 PDF（中英各一套）在 [`docs/samples/`](docs/samples/)。
 
 ## 安装
 
@@ -41,9 +41,12 @@ python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-prov
 
 | 覆盖 | 内容 |
 |---|---|
-| 文本基准 | Claude（一方 / Bedrock）、Grok、Gemini、Kimi、GLM、DeepSeek |
+| 文本基准 | Claude（一方 / Bedrock）、OpenAI（含 Azure / Bedrock 托管）、Grok、Gemini、Kimi、GLM、DeepSeek |
 | 视频基准 | 阿里 wan3、MiniMax H3、Seedance（火山方舟 / BytePlus） |
 | 中转形态 | new-api / one-api（分组、倍率、日志、参数透传）、sub2api（订阅号池） |
+| 真伪之外 | 输出 token 虚报、上下文被截、输出被改、中转留存提示词、条款 / 合规风险 |
+
+流程有英文版 [`references/en/SKILL.en.md`](skills/relay-provider-audit/references/en/SKILL.en.md)；findings 里写 `"lang": "en"` 就出英文报告（样例 [`assets/examples/text-en/`](skills/relay-provider-audit/assets/examples/text-en/)）。
 
 依赖：Python 3.10+；出 PDF 要 Chrome / Chromium；视频脚本用 `uv run --with` 现拉 Pillow / numpy / c2pa-python。
 

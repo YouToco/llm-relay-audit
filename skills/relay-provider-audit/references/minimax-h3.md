@@ -38,28 +38,29 @@
 - 另：H3 升 2K 重生成 $0.05 / 秒；H3-Context-IR $0.90 / $3.60 每百万 token（输入 / 输出）。
 - 官方档位倍率：H3 2K / 768P = 1.625。
 
-## 实测行为（2026-09，经第三方转发观察，非直连官方 key）
+## 经第三方观察到的行为（2026-09，非直连官方 key）
 
-> 实测型号当时以「H3-Max-Turbo」命名；规格（480P / 768P、5–15 秒）与文档里的 H3-Max 一致，推断为同一型号。
+> **非官方观察，不能当基准（待官方直连实测）**：本节全部经第三方转发看到，可能混着中转自己的改写；对照表的「官方列」只能用上面的文档内容。
+> 某中转以 `-Turbo` 后缀售卖（H3-Max-Turbo）；规格（480P / 768P、5–15 秒）与文档里的 H3-Max 一致，推断为同一型号。
 
 - 规格：H3-Max 只有 480P / 768P；时长 5–15 整数；文生视频必须显式 `ratio`（不能 adaptive），带图可 adaptive。
-- 480P 16:9 = **832×480、24fps、32kHz 音轨**；方形首帧 + adaptive → 768×768；duration=5 容器时长约 5.17 秒，仍按整数秒计。
+- 观察到 480P 16:9 = 832×480、24fps、32kHz 音轨（非官方观察，不能当基准）；方形首帧 + adaptive → 768×768；duration=5 容器时长约 5.17 秒，仍按整数秒计。
 - **校验顺序**：素材类型 / `ratio` / `extra` 先于 `duration`，`duration` 先于分辨率 → 免费探针可用 `duration:3`（对两个型号都非法）兜底（规则 5）。
 - 上游接受小写 `480p` 并回显成 `480P`。H3-Max 不支持参考图 / 视频 / 音频（400）。
-- 计费 usage：H3 有 `output_seconds`（计费）、`input_seconds`（仅参考视频）、`input_image_count`（含免费图）、`total_seconds`；
-  H3-Max 拆成 `video_seconds` + `video_input_seconds` + `image_input_count`。
+- 计费 usage：H3 有 `output_seconds`（计费）、`input_seconds`（仅参考视频）、`input_image_count`（含免费图）、`total_seconds`（与文档一致）；
+  H3-Max 观察到拆成 `video_seconds` + `video_input_seconds` + `image_input_count`——文档没写这套名字，**非官方观察，待官方直连实测**，可能是中转改的名。
 - 出片快：480P 5 秒约 10 秒。
 - 官方非法参数行为矩阵只有文档、没有逐条直连实测（待补）。
 
 ## 成片规格（指纹）
 
 - **待补**：官方成片的编码器 / 容器 / 合规标签 / 成片链接域名还没取到。拿到一条官方成片前，判真伪只能靠「规格是否符合文档 + 有没有自建管线痕迹」，无法做编码器逐项比对。
-- 已知（上节）：480P 16:9 = 832×480、24fps、32kHz 音轨。
+- 上节经第三方观察到的 832×480、24fps、32kHz 只是线索，**非官方观察，不能当基准（待官方直连实测）**。
 
 ## 判真伪要点
 
 - **ComfyUI 工作流**：`scripts/extract_comfy.py` 读 mp4 元数据，有工作流 = 中转用开源 / 量化权重自建管线，不是官方 API 输出（能读出文本编码器、主模型、量化方式、LoRA、采样步数、GPU 数）。
-- 分辨率是否被放大（480P→768P）、帧率 / 音频采样率是否符合官方（24fps / 32kHz）。分辨率非官方档位（如 1344×768）是强信号。
+- 分辨率是否被放大（480P→768P）、帧率 / 音频采样率是否和官方直连成片一致（官方值待实测；第三方观察到的 24fps / 32kHz 不能当基准）。分辨率不在文档档位里（如 1344×768）是强信号。
 - 码率异常低、无 AI 生成合规标识、成片链接在第三方 CDN → 结合上两条判断。
 - 状态体有没有官方形状的 `task` 对象和 `usage`；`task_id` 是不是纯数字。
 - 价目标了的档位也要实测能不能用（规则 1）。
@@ -67,7 +68,7 @@
 ## 接入网关要求
 
 - 能拿到官方任务号（纯数字字符串）和官方形状的查询结果（`status`、`content.url`、`resolution`、`duration`）。
-- 状态体有 `usage`：`output_seconds`、`input_seconds`、`input_image_count`（H3-Max 是 `video_seconds` / `video_input_seconds` / `image_input_count`），参考素材计费口径要和官方一致。
+- 状态体有 `usage`：按文档是 `output_seconds`、`input_seconds`、`input_image_count`、`total_seconds`，参考素材计费口径要和官方一致。H3-Max 经第三方见过 `video_seconds` / `video_input_seconds` / `image_input_count` 这套名字（非官方观察，待官方直连实测），网关先两种都能解析，别把它写成官方要求。
 - 报错保留官方错误码（2013 / 1004 / 1008 / 1026 / 1002），不泄露插件名、源码行号等内部信息。
 - 成片链接能直接拿到（不是只能另调 `/content` 接口取流）。
 

@@ -5,7 +5,7 @@
 
 ## 官方接口与响应
 - 文档：当天取 `platform.claude.com/docs/en/<页>.md`（Messages / Streaming / Errors / Rate limits / API overview / Token counting）；Bedrock 版见 AWS 文档「Anthropic Claude Messages API」页（`docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html`）。
-- **id 前缀认后端**：一方 API = `msg_011C…`（请求 id `req_011C…`）；Bedrock = `msg_bdrk_…`；Vertex = `msg_vrtx_…`。分组名 / 模型名带「AWS」「Bedrock」「官转」都不算证据，以 id 为准。
+- **id 前缀认后端**：一方 API 实测 = `msg_011C…`（请求 id `req_011C…`）——这是观察到的前缀，官方没承诺 id 格式，可能会变，看到别的前缀先拿官方 key 发一单核对；Bedrock = `msg_bdrk_…`；Vertex = `msg_vrtx_…`。分组名 / 模型名带「AWS」「Bedrock」「官转」都不算证据，以 id 为准。
 - **一方 API 的身份证据**：非流式响应头有 `request-id`、`anthropic-organization-id`、`anthropic-ratelimit-*`；多发几单数一下出现几个不同的组织 id，多个 = 号池。注意 new-api 流式响应不透传上游头，要看非流式。
 - usage：`input_tokens`、`output_tokens`、`cache_creation_input_tokens`、`cache_read_input_tokens`，以及 `cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`。
 - 思考：4.7 及更新的型号默认不回思考摘要，要 `thinking.display:"summarized"` 才有；思考块必须带 `signature`。新型号不支持 assistant 预填，回 400 是正常行为。
@@ -31,13 +31,14 @@
 | conc | 顺序基线 + 5 / 10 路并发 | 首字、是否 429 |
 | 对账 | 站点日志逐笔 | 按上面公式逐笔核 |
 
-- **认型号（model swap）**：发 `max_tokens: 9999999`，Claude 上游 400 报错里带真实模型名（「maximum allowed … for <模型>」），400 不扣费，官方同发一遍对照。**这招只对 Claude 有效**（Gemini 夹住不报错、OpenAI Responses 照常成交扣费，见 `gemini.md`、`text-checks.md`）。
+- **认型号（model swap）**：发 `max_tokens: 9999999`，Claude 上游 400 报错里带真实模型名（「maximum allowed … for <模型>」），官方同发一遍对照。**直连官方 Claude API 时这个 400 免费；经中转当可能付费**（见下「400 也换渠道重试」、`new-api.md` 预扣）：先发一次、读供应商日志 `quota`，没扣再重复。**这招只对 Claude 有效**（Gemini 夹住不报错、OpenAI Responses 照常成交扣费，见 `gemini.md`、`text-checks.md`）。
 - 超大 max_tokens 被中间层用 OpenAI 口吻拦（如 `max_output_tokens_exceeded`、不带型号名）时，改用自定义工具的 input_tokens 认型号：工具说明按型号注入的 token 数不同。
-- 有官方 key 时并排测（同一请求体发两边）：每个型号两边 `input_tokens` 必须逐个相等，分词器不同的新型号也要对上；不等 = 加了提示词或换了模型。
+- 有官方 key 时并排测（同一请求体发两边）：每个型号两边 `input_tokens` **期望逐个相等**，分词器不同的新型号也要对上。容差：官方文档说 count_tokens 是估计值、实际可能「differ by a small amount」，且可能含官方自动加、不计费的 token（[Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting)，2026-10-23 读）；实践中同一型号、一字不差的提示词是逐个相等的。固定小差（如每单都 +4）= 模板差异；差得大或不成常数 = 加了提示词或换了模型。
 - 「只写像某一代」不算结论；「字段一致」要程序求差集（规则 12）。
 
 ## 对账与计数
 - 比的是**中转真实请求的 usage**（`input_tokens + cache_creation + cache_read`，中转可能自动加缓存断点）对官方 `count_tokens`，提示词一字不差；别拿中转自己的 count_tokens 比（可能不注入、和官方相等，真实请求却多）。
+- 分词器（[Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting)，2026-10-23 读）：4.7 及更新的型号用新分词器，同一文本约多 30%；Fable 5 / 5.1 与 Mythos 5 / 5.1 共用 Opus 4.7 引入的分词器、同一提示词计数相同。`new-api.md` 里记的 fable-5（16）与 fable-5-1（18）基准数和这句矛盾，**待复测**，复测前别拿两者的差判换模型。count_tokens 免费，但有每分钟请求数限制。
 - 先用免费的 `count_tokens` 定前缀大小再报价：「随机词 + 数字」拼 4200 词实际约 20K token，按词数估会低估约 4 倍。
 - 一套官方并排测（可用性 / 参数 / 丢字段 / 缓存 / 延迟 / 并发）官方侧花费在 $1 以内量级（2026-10-12 实测）。
 - 429 不计费；缺 `max_tokens` 或 `max_tokens:0` 在 new-api 会被补默认值而成交，不是免费探针。

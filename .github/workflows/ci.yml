@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Examples pass the report validator
+        run: |
+          S=skills/relay-provider-audit
+          for k in text video; do python -I $S/scripts/build_report.py $S/assets/examples/$k/findings.json --check; done
+
+      - name: Agent Skills spec (skills-ref)
+        run: uvx --from "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref" skills-ref validate skills/relay-provider-audit
+
+      - name: Discoverable by npx skills
+        run: npx -y skills@latest add . --list | tee /tmp/skills.txt && grep -q relay-provider-audit /tmp/skills.txt
+
+      - name: Plugin manifests are valid JSON
+        run: python -c "import json;[json.load(open(f)) for f in ('.claude-plugin/plugin.json','.claude-plugin/marketplace.json')]"
+
+      - name: No secrets committed
+        run: |
+          uvx --from detect-secrets detect-secrets scan --all-files --exclude-files '\.pdf$|\.png$|c2pa_known_signers\.json$' > /tmp/ds.json
+          python -c "import json,sys;r=json.load(open('/tmp/ds.json'))['results'];[print(f,x['type'],x['line_number']) for f,v in r.items() for x in v];sys.exit(1 if r else 0)"

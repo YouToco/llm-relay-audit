@@ -10,7 +10,8 @@
 
 - 提交：`POST {base}/api/v1/services/aigc/video-generation/video-synthesis`，头 `X-DashScope-Async: enable`、`Authorization: Bearer <key>`。
 - 查询：`GET {base}/api/v1/tasks/{task_id}`，建议 15 秒一查；task_id 和 `video_url` 只保留 **24 小时**，过期状态 `UNKNOWN`；查询 RPS 20。
-- `{base}`：百炼业务空间专属域名 `https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com`（北京）/ `https://{WorkspaceId}.ap-southeast-1.maas.aliyuncs.com`（新加坡），key 和地域要匹配。
+- `{base}`：百炼业务空间专属域名 `https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com`（北京）/ `https://{WorkspaceId}.ap-southeast-1.maas.aliyuncs.com`（新加坡）；2026-10-23 读文档时还列了日本（东京）`ap-northeast-1`。key 和地域要匹配。
+  - 旧的通用域名 `https://dashscope.aliyuncs.com`（同样的 `/api/v1/…` 路径）现行文档已不写，但实测仍可用（实测观察，未见文档）；中转多半模仿的是旧域名的路径和响应，对照时两种 base 都算官方写法。
 - 模型 `wan3.0-video` / `wan3.0-video-prime`（All-in-One，按 `input.media[].type` 自动路由：文生 / 首帧 / 首尾帧 / 参考图 / 参考视频 / 参考音频 / 文件 / 链接 / 编辑 / 延长）。
 - `parameters`：
   - `resolution` 480P / 720P / **1080P（默认）**；`ratio` adaptive（默认）/ 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16；
@@ -32,7 +33,7 @@
 | prime 北京（¥ / 秒） | 0.45 | 0.9 | 1.8 | 无折扣 |
 | prime 新加坡（$ / 秒） | 0.068 | 0.14 | 0.28 | |
 
-- 档位倍率 **480 : 720 : 1080 = 1 : 2 : 4**。中转的价格曲线明显偏离这个倍率就是异常信号（见下「中转常见问题」）。
+- 档位倍率 **480 : 720 : 1080 = 1 : 2 : 4**（prime 新加坡 0.068 / 0.14 / 0.28 不是严格 1 : 2 : 4，看起来是标价取整，按 1 : 2 : 4 判时留几个百分点余量）。中转的价格曲线明显偏离这个倍率就是异常信号（见下「中转常见问题」）。
 
 ## 实测行为（官方，2026-10-05；对照表「官方列」用这些）
 
@@ -60,6 +61,7 @@
 
 ## 判真伪要点
 
+- **wan3 官方原片没有 C2PA**：`c2pa_check.py` 报「无 C2PA」对 wan3 不是负面证据；看 `analyze_videos.py` 的 `aigc`（`ContentProducer`）、`encoder` 和 `encoder_sei`（官方 `x264 - core 164`）。
 - 编码器 + 容器版本 + `AIGC` 标签（`ContentProducer` 与官方一致、有 `ProduceID` / `ReservedCode`）都对上 → 阿里原片、没被转码。只剩 `Lavf…`、标签缺失或生成方编码不同 → 被重编码或非官方生成。
 - 分辨率 / 帧率 / 帧数 / 音轨要和上表一致；频谱分不出原生 480P 和超分 720P，别当证据（`video-checks.md`）。
 - 链接域名：官方 OSS 还是中转自己的域名 / CDN（代理换域名本身不算造假，但要记下，并按规则 15 判是否被封装）。

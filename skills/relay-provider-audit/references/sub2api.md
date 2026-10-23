@@ -22,12 +22,12 @@
 - 号池没号报 503「No available accounts」（前面常先一个 429「Upstream rate limit exceeded」）= 订阅号被限流 / 封，按规则 9 复测 3 遍再定性。
 - 有自己的预校验文案（`<model> does not support top_k`、`requires adaptive thinking`、`does not support forced tool_choice`）；会吞 `anthropic-beta` / `anthropic-version` 头和部分型号的 `thinking.enabled`。
 - 不存在的模型回 Cloudflare 纯文本「error code: 502」，不是 JSON；自己生成的错误都没有 `request_id`；401 外壳是 `{"code":"INVALID_API_KEY","message"}`；`request-id` / organization / workspace / ratelimit 头被剥光（个别实现会透传，见上面的头判法）。
-- **回包多出 `input_transformations` / `context_management`**：按官方文档只有带 `thinking-binding-controls-2026-08-01` / `context-management-2025-06-27` beta 头才出现 = 中转往上游发了自己的 beta 头（客户传的 beta 被换掉）。拿回包顶层字段对文档、程序求差集就能看出（`text-checks.md`）。
+- **回包多出 `input_transformations` / `context_management`**：`context_management` 按官方文档只在带 `context-management-2025-06-27` beta 头时出现；`input_transformations` 实测只在带 `thinking-binding-controls-2026-08-01` beta 头时出现（**实测观察，未见文档**）。客户没传这些头却出现 = 中转往上游发了自己的 beta 头（客户传的 beta 被换掉；推断）。拿回包顶层字段对文档、程序求差集就能看出（`text-checks.md`）。
 - 免费探针里的「不存在的模型」会让正在跑的号对该模型记 30 分钟限流（`upstream_404_model_not_found`），无害但要知道。
 
 ## 有管理员后台时（规则 11：只读，不代输密码）
-- 由使用者本人在浏览器登录；agent 只在已登录页面里用浏览器只读发 GET，用页面自身的会话令牌（如 `localStorage.auth_token`）放进请求头，**不打印、不记录令牌**：
-  `GET /api/v1/admin/accounts?page=1&page_size=100`，同样读 `groups`、`users`、`dashboard/stats`。不点任何改动按钮，用完关标签页。
+- 由用户本人在浏览器登录；agent 只在用户的已登录会话里发**只读 GET**（让页面自己带会话凭证，agent 不去读、不复制、不打印、不记录任何令牌）：
+  `GET /api/v1/admin/accounts?page=1&page_size=100`，同样读 `groups`、`users`、`dashboard/stats`。不点任何改动按钮、不发 GET 以外的请求，用完关标签页。
 - **只取非凭证字段**：`type` / `status` / `error_message` / `group` / `concurrency` / `extra.model_rate_limits` / `passive_usage_7d_utilization`；`credentials` 里的 token、邮箱、uuid 不读不记。
 - 看点：
   - 账号 `type`：`oauth` = 消费者订阅号（API key 账号另有类型）。
@@ -35,4 +35,4 @@
   - 真正挂在分组里、状态正常的可用号数（决定容量）。
   - `model_rate_limits` 的原因（如 `anthropic_fable_credits_required`：订阅额度不含该模型）。
   - 分组 `rate_multiplier`（= 倍率）、`dashboard/stats` 累计请求数（判站点规模）。
-- 消费者订阅号转卖通常违反上游服务条款，号随时可能被停（推断）；报告里写清「订阅组织 vs API 组织」证据，接不接由使用者决定。
+- 消费者订阅号转卖通常违反上游服务条款，号随时可能被停（推断）；报告里写清「订阅组织 vs API 组织」证据，接不接由用户决定。

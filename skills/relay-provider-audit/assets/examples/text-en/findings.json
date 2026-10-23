@@ -1,0 +1,239 @@
+{
+ "meta": {
+  "title": "ExampleRelay · Claude Sonnet X audit",
+  "short_title": "ExampleRelay Claude",
+  "supplier": "ExampleRelay",
+  "official": "Anthropic official API",
+  "model": "claude-sonnet-x",
+  "kind": "text",
+  "date": "2026-01-15",
+  "scope": "group `claude-official` · non-streaming / streaming / errors",
+  "pdf_name": "ExampleRelay-Claude-audit-report.pdf",
+  "lang": "en"
+ },
+ "summary": "**Fictional example**: the backend is real Claude on AWS Bedrock (not the first-party API), with no injection and no model swap; invalid params are swallowed into 200, and the price is official × 1.2.",
+ "claims": [
+  {
+   "item": "Channel",
+   "claimed": "Anthropic first-party",
+   "measured": "AWS Bedrock (`msg_bdrk` prefix)",
+   "verdict": "warn",
+   "label": "Mismatch"
+  },
+  {
+   "item": "Model",
+   "claimed": "claude-sonnet-x",
+   "measured": "claude-sonnet-x (tokens match one by one)",
+   "verdict": "good",
+   "label": "Match"
+  }
+ ],
+ "verdicts": [
+  {
+   "area": "Backend",
+   "verdict": "warn",
+   "label": "Bedrock",
+   "text": "id prefix `msg_bdrk`, not first-party"
+  },
+  {
+   "area": "Model",
+   "verdict": "good",
+   "label": "Real model",
+   "text": "input_tokens equal official count_tokens"
+  },
+  {
+   "area": "API",
+   "verdict": "warn",
+   "label": "Swallows params",
+   "text": "temperature=9: official 400, relay 200"
+  },
+  {
+   "area": "Cost",
+   "verdict": "warn",
+   "label": "1.2×",
+   "text": "price = official list × 1.2"
+  }
+ ],
+ "asks": [
+  {
+   "item": "Return 400 for invalid params as-is",
+   "why": "clients rely on 400 to catch wrong params; swallowing them hides bugs"
+  }
+ ],
+ "method": {
+  "kv": [
+   [
+    "Target",
+    "ExampleRelay group `claude-official`"
+   ],
+   [
+    "Requests",
+    "12 free probes + 6 paid"
+   ],
+   [
+    "Spent",
+    "$0.02"
+   ],
+   [
+    "Baseline",
+    "official count_tokens (same day) + official docs"
+   ]
+  ],
+  "note": "All data is fictional; it only shows how to fill findings.json."
+ },
+ "authenticity": {
+  "intro": "Four required checks.",
+  "skipped": {},
+  "evidence": [
+   {
+    "id": "id_prefix",
+    "check": "Response id prefix",
+    "official": "`msg_011C…`",
+    "supplier": "`msg_bdrk_01…`",
+    "verdict": "warn",
+    "label": "Bedrock"
+   },
+   {
+    "id": "token_count",
+    "check": "Input tokens vs official",
+    "official": "14 / 1,203 (with text_editor)",
+    "supplier": "14 / 1,203",
+    "verdict": "good",
+    "label": "Equal"
+   },
+   {
+    "id": "model_swap",
+    "check": "Model swapped?",
+    "official": "max_tokens 9999999 → 400 names claude-sonnet-x",
+    "supplier": "same: claude-sonnet-x",
+    "verdict": "good",
+    "label": "No swap"
+   },
+   {
+    "id": "injection",
+    "check": "Prompt injected?",
+    "official": "—",
+    "supplier": "no extra tokens, can't recite a system prompt",
+    "verdict": "good",
+    "label": "None"
+   }
+  ]
+ },
+ "diffs": [
+  {
+   "item": "Invalid temperature",
+   "official": "400 invalid_request_error",
+   "supplier": "200, value dropped",
+   "impact": "customer",
+   "note": "customers can't see their param mistakes"
+  },
+  {
+   "item": "Response headers",
+   "official": "`request-id`, ratelimit headers",
+   "supplier": "only `x-oneapi-request-id`",
+   "impact": "integration",
+   "note": "rate limiting needs your own retry policy"
+  }
+ ],
+ "errors": {
+  "rows": [
+   {
+    "input": "temperature=9",
+    "official": {
+     "jsonl": "artifacts/official.jsonl",
+     "label": "temperature=9"
+    },
+    "supplier": {
+     "jsonl": "artifacts/supplier.jsonl",
+     "label": "temperature=9"
+    },
+    "verdict": "bad",
+    "label": "Swallowed"
+   }
+  ]
+ },
+ "sections": [],
+ "cost": {
+  "unit": "$ / M tokens",
+  "intro": "From the site's `/api/pricing` billing_expr × group_ratio.",
+  "tiers": [
+   {
+    "tier": "Input",
+    "official": 2,
+    "supplier": 2.4,
+    "ratio": 1.2,
+    "basis": "billing_expr p*2 × ratio 1.2",
+    "tested": true
+   },
+   {
+    "tier": "Output",
+    "official": 10,
+    "supplier": 12,
+    "ratio": 1.2,
+    "basis": "billing_expr c*10 × ratio 1.2",
+    "tested": true
+   }
+  ],
+  "note": "RMB top-up rate unknown; ask the vendor."
+ },
+ "gateway": {
+  "items": [
+   {
+    "item": "Native Anthropic /v1/messages",
+    "tier": "ready",
+    "detail": "official path and envelope"
+   },
+   {
+    "item": "Invalid params swallowed",
+    "tier": "vendor",
+    "detail": "vendor must pass 400 through"
+   }
+  ]
+ },
+ "exchanges": [
+  {
+   "title": "Non-streaming · minimal request",
+   "official": {
+    "jsonl": "artifacts/official.jsonl",
+    "label": "ok"
+   },
+   "supplier": {
+    "jsonl": "artifacts/supplier.jsonl",
+    "label": "ok"
+   }
+  }
+ ],
+ "internal": {
+  "decision": "backup",
+  "reason": "Real model, no injection, but swallows params and costs more than the existing line.",
+  "this_line": {
+   "cost": "1.2×",
+   "note": "multiple of official list price"
+  },
+  "existing_lines": [
+   {
+    "line": "line-a",
+    "supplier": "VendorA",
+    "cost": "1.1×",
+    "success_30d": "99.2%",
+    "volume_30d": "1.2M",
+    "note": "primary"
+   }
+  ],
+  "existing_note": "snapshot 2026-01-15 (fictional)",
+  "ask_business": [
+   "RMB top-up rate",
+   "can they fix param passthrough"
+  ],
+  "risks": [
+   "Bedrock lacks some beta features"
+  ],
+  "next": [
+   "retest swallowed params after the fix"
+  ],
+  "redact_terms": [
+   "VendorA",
+   "line-a"
+  ]
+ }
+}

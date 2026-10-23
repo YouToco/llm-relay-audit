@@ -1,0 +1,4 @@
+[
+ {"vendor": "Volcengine Ark (火山方舟国内) Seedance", "issuer": "北京火山引擎科技有限公司", "sha256": "635451f517fe5d0ad539d44bc0b7306d5f978bcd1eece031f8d6a193461fed68",
+  "source": "official Ark API outputs (Seedance 2.0-mini 2026-10-08, 2.5 2026-10-21); chain GlobalSign GCC R45 SMIME CA 2025 → GlobalSign Secure Mail Root R45; valid 2026-04-20 – 2028-04-20", "verified": "2026-10-21"}
+]

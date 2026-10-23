@@ -9,8 +9,8 @@
 - 一个站点常挂多个分组，每组背后可能是完全不同的后端（Azure、逆向 Codex、Bedrock、厂商一方 API 混在同一站）。**按组测，别把一组的结论套到另一组**。
 
 ## 管理接口：访问令牌 vs sk key
-- 供应商给的可能是**访问令牌**（不是 `sk-` key）：`/api/*` 管理接口用 `Authorization: <访问令牌>`（直接放，不加 Bearer）；老分叉还要头 `New-Api-User: <数字用户 id>`，缺了报 `New-Api-User header not provided`，新版已去掉。
-- 数字用户 id：`GET /api/user/self` 的 `id`，或站点的账户设置页；也可在使用者已登录的浏览器里只读 `JSON.parse(localStorage.user).id`（只取 id / username / group，别读别的）。
+- 供应商给的可能是**访问令牌**（不是 `sk-` key）：`/api/*` 管理接口用 `Authorization: <访问令牌>`（直接放，不加 Bearer；`probe_lib` 里 `auth="raw"`）；老分叉还要头 `New-Api-User: <数字用户 id>`，缺了报 `New-Api-User header not provided`，新版已去掉。
+- 数字用户 id：`GET /api/user/self` 的 `id`，或站点的账户设置页；也可请用户在自己已登录的浏览器里看账户页（只取 id / username / group，别读别的，别碰会话令牌）。
 - **建 key**：`POST /api/token/`，body `{name, group, unlimited_quota, remain_quota, expired_time:-1}`。创建响应 `data=null`，列表 / 详情里 key 全打码；完整 key 要再 `POST /api/token/:id/key` 取。
 - 测试账户若和线上业务共用：新建测试 key 一律 `unlimited_quota:false` + `remain_quota` 限额，名字带 `eval-<日期>`，已有 key 只读不碰。
 - 可选分组清单：`GET /api/user/self/groups`（带 ratio / desc）。各组能用哪些模型：用该组 sk key 打 `/v1/models`（免费）。
@@ -23,7 +23,7 @@
 - **真实贵贱要看充值汇率**：站点 `usd_exchange_rate` 常为 1、`top_up_link` 常为空；灰产常见「¥X 买 $1 额度」。报告写「显示价 = 官方 × 倍率」，贵贱注明需供应商提供充值档。
 
 ## 日志对账：`/api/log/token`
-- `GET /api/log/token?key=<sk>`（用 **sk key**，不是访问令牌），免费。逐笔字段：`quota`、`usage_usd`、`model_cost_usd`、`pricing_accuracy`、`other.group_ratio`、`other.cache_ratio`、`other.expr_b64`、渠道号。
+- `GET /api/log/token`，头 `Authorization: Bearer <sk>`（用 **sk key**，不是访问令牌），免费；`probe_lib.vendor_log()` / `spent(since_ts)` 就是这么调的（`spent` 会翻页）。有的版本只认 `?key=<sk>` 查询参数（`vendor_log(key_param=True)`）——那会把 key 写进 URL（代理日志、浏览器历史、报错回显都会留下），只在头写法不通时用。逐笔字段：`quota`、`usage_usd`、`model_cost_usd`、`pricing_accuracy`、`other.group_ratio`、`other.cache_ratio`、`other.expr_b64`、渠道号。
 - `type 2` = 成功扣费；`type 5` = 被拒请求，`content` 里是响应里被抹掉的真实原因；`other.channel_name` 常露出上游渠道名；`other.request_conversion` 出现「OpenAI Compatible」= 中间做了格式转换，按 `claude.md`「经 OpenAI 格式转换」一节重点测非流式工具、内置工具、缓存。
 - 额度单位：**500000 quota = $1**。微型调用 `quota` 会取整成 0，看 `usage_usd`。
 - `/v1/dashboard/billing/usage` **默认不可信**（见过一单读错几百倍）；个别站的 `total_usage`（美分）可信，先拿日志核对一次再当总额用。
@@ -47,22 +47,21 @@
 
 ## 认后端：response id 与 body
 - 第一个 200 就看 id 前缀：`msg_011C…` = Anthropic 一方；`msg_bdrk…` = AWS Bedrock；`chatcmpl…` = OpenAI / Azure chat；`resp_…` = OpenAI Responses（逆向 Codex 也走这个）。再故意发一个非法参数，看报错原文露不露上游（`Bedrock Runtime` / Vertex / Azure）。报告第一张卡写「分组名说的」vs「实测后端」。
-- **Azure 看 body 不看头**（头已被剥）：`usage.latency_checkpoint`（engine / service ttft、pre_inference）、流式 `obfuscation`、`system_fingerprint`。Codex 这些都没有。透传头的分叉还能看到 `azureai-fe-offer-type: paygo`、`x-ratelimit-key`、`x-ratelimit-remaining-tokens`（剩余 TPM 很小 = 容量紧）。
-- **OpenAI API 账户 vs ChatGPT / Codex 后端**：`resp_` 后第 35–38 位（0 起）API 账户见到 `87d1`、ChatGPT / Codex 见到 `8191`（样本有限，推断规律）。Codex 还会：回显 `instructions`「You are Codex…」并在 `usage.attribution` 里给 instructions 计 token（每次约 4,380，照收）；丢 `max_output_tokens` / `temperature` / `top_logprobs`；`store` 强制 false；`previous_response_id`「not available for this user」；流式带 `openai_chatgpt_moderation`。**同一分组里可能混着两种，按模型逐个看**。
-- **故意发非法参数也要看 id**：见过 API 拒绝后改投 Codex 池（`temperature 9` → 200 + Codex 注入照收），或回 `resp_ft_…` 这种非 OpenAI 的 id——「官方 400、它 200」本身就是证据。
-- **Bedrock 上的 OpenAI**：回包 model = `global.openai.<型号>` / `us.openai.…`（Bedrock 跨区推理 id）；`resp_` / `chatcmpl-` 后是 52 位小写 base32（官方是十六进制）；头带 `x-amzn-requestid`；`input_tokens` 照样 = 官方 `/v1/responses/input_tokens`。Bedrock 限制原样传给客户：图片只收 `data:` / `s3://`（http URL 400）、没有 Priority（`priority` 回 `default`）、gpt-oss 不支持 Responses。价按 OpenAI 指南 = 官方直连价（单区域 +10%）。**这里 `temperature=9` 不是保险**：见过全型号照收成交，先用一个型号试。
-- **超大 `max_tokens` 招数对 GPT 无效**：官方 `max_output_tokens: 9999999` 过校验，中转会真成交扣钱；GPT 认后端靠上面的 id 段 + instructions。
+- **OpenAI / Azure / Bedrock 上的 GPT / Codex 后端**怎么认（Azure body 特征、API 账户 vs Codex、`global.openai.*`、超大 `max_output_tokens` 无效）已合并到 `openai.md`「认后端」一节。
 
 ## 换模型识别
 - **第一步（便宜，判「是不是」）**：同一句（裸「Reply with the single word OK.」）+ 带厂商专属工具（Claude 用 `text_editor_20250728`，放大到上千 token 更灵敏），各组真实请求的 `input_tokens` 逐个和官方 count_tokens 比。**提示词和建基准时一字不差**，换短提示词会造成假性不符。多出来 = 注入隐藏系统提示或换了模型。
-- 不同代分词器不同（例：Claude 5 代 18 / 带工具 1289，fable-5 16 / 1291），数对不上 = 换了模型；**同一代几个型号数一样，分不出是谁**，不能写「像某一代」就停。
-- **第二步（免费，判「是谁」，只对 Claude 有效）**：其他字段合法，发 `max_tokens: 9999999`，上游 400「`max_tokens: 9999999 > 128000, which is the maximum allowed number of output tokens for <真实模型名>`」。400 不扣费（日志 type 5、quota 0）。每个模型都发，并在官方同发对照：正常型号报自己的名字，被换的报替身名字。
+- 不同代分词器不同（例：Claude 5 代 18 / 带工具 1289；fable-5 记的是 16 / 1291，**待复测**，见下节说明），数对不上 = 换了模型；**同一代几个型号数一样，分不出是谁**，不能写「像某一代」就停。
+- **第二步（免费，判「是谁」，只对 Claude 有效）**：其他字段合法，发 `max_tokens: 9999999`，上游 400「`max_tokens: 9999999 > 128000, which is the maximum allowed number of output tokens for <真实模型名>`」。直连官方 Claude API 时这个 400 免费；**经中转要当可能付费**：见过日志 type 5、quota 0 不扣，也见过按 max_tokens 预扣不退、400 后换渠道重试（`claude.md`）——先发一次查日志 `quota`，没扣再每个模型都发，并在官方同发对照：正常型号报自己的名字，被换的报替身名字。
 - 案例（匿名）：某组 `claude-fable-5` 实际跑 `claude-opus-5-5`，回包 `model` 照写 fable-5、按贵模型价收，只有报错说了实话。
 - 中转改写 / 抹掉上游报错时退回看：默认思考块（官方 fable-5 回 OK 也出 `thinking` 块，opus-5-5 没有）、输出 token 数、耗时（真 fable-5 约 4–6 秒、替身约 2 秒），拿替身型号并排比这几项是否完全一样。
 - 报告分开写「是不是」（token）和「是谁」（报错模型名）两条证据，附原文。
 
 ### Claude 官方 count_tokens 基准（2026-10-14，裸「Reply with the single word OK.」）
-opus-5-5=18 / opus-5=16 / opus-4-8=16 / opus-4-7=21 / opus-4-6=14 / sonnet-5-5=18 / sonnet-5=16 / sonnet-4-6=14 / sonnet-4-5=14 / haiku-5-5=18 / haiku-4-5=14 / fable-5=16 / fable-5-1=18；带 `text_editor` 工具 opus-5-5=1289。过期按规则 10 现取。
+opus-5-5=18 / opus-5=16 / opus-4-8=16 / opus-4-7=21 / opus-4-6=14 / sonnet-5-5=18 / sonnet-5=16 / sonnet-4-6=14 / sonnet-4-5=14 / haiku-5-5=18 / haiku-4-5=14 / fable-5=16 / fable-5-1=18（**fable 两个数待复测**）；带 `text_editor` 工具 opus-5-5=1289。过期按规则 10 现取。
+
+- **fable 两个数自相矛盾，待复测**：官方 [Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting)（2026-10-23 读）写明 Fable 5.1 / Mythos 5.1 / Fable 5 / Mythos 5 共用 Opus 4.7 引入的分词器、「A prompt counts the same on all four」，而这里 fable-5 = 16、fable-5-1 = 18 不同（工具版 1291 也只测了一个）。复测前别拿 fable-5 和 fable-5-1 的差当换模型证据；用官方 key 对两个型号各取一次（免费，规则 10）再用。
+- 计数是估计值：文档说实际输入可能和 count_tokens「differ by a small amount」；实践中同型号一字不差的提示词逐个相等，固定小差算模板差、大或不成常数才可疑（`text-checks.md`）。
 
 ## 多分组一次测完
 - 拿到访问令牌后：列分组 → 每组建一把限额 key → 每组 `/v1/models` → 同一批免费探针（id 前缀、非法参数、`max_tokens` 招数）逐组跑 → 同一句真实请求逐组比 token → 日志读实扣与 `group_ratio`。报告做「分组一览 + 真伪 token 表 + 成本倍率表」三张表。
@@ -71,5 +70,5 @@ opus-5-5=18 / opus-5=16 / opus-4-8=16 / opus-4-7=21 / opus-4-6=14 / sonnet-5-5=1
 - 模型名带后端字样（如带 AWS / Bedrock 字样的后缀）也不算证据，见过回一方 id 的。
 
 ## 图片输出
-- 生图模型常在单独的生图分组。出图可能是真 OpenAI（C2PA 签发方 `OpenAI OpCo, LLC`、签名有效），但**被转存到中转自己的对象存储**，url 域名非官方；有的转存后文件哈希与签名不匹配（字节被重处理），有的匹配。
+- 生图模型常在单独的生图分组。出图可能是真 OpenAI（C2PA 主体 O 写 `OpenAI OpCo, LLC`、签名有效——指纹没对过官方，按 `video-checks.md` 只算「签名有效但签发者未核实」），但**被转存到中转自己的对象存储**，url 域名非官方；有的转存后文件哈希与签名不匹配（字节被重处理），有的匹配。
 - 同组可能混 url 型和 b64 型；见过另一种 b64 后端无 C2PA、输入 token 多 13、medium 质量 515 token——**看回包形状 + token 就能分后端**，不必每张跑 C2PA。

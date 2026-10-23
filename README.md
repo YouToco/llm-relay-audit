@@ -8,7 +8,7 @@
 
 ![Generated report pages](docs/images/gallery-en.png)
 
-Every page above is rendered by `build_report.py` from the fictional [`assets/examples/`](skills/relay-provider-audit/assets/examples/). Full PDFs: [`docs/samples/`](docs/samples/).
+Every page above is rendered by `build_report.py` from the fictional [`assets/examples/`](skills/relay-provider-audit/assets/examples/). Full PDFs (Chinese + English): [`docs/samples/`](docs/samples/).
 
 ## Install
 
@@ -41,9 +41,12 @@ python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-prov
 
 | Covers | Files |
 |---|---|
-| Text baselines | Claude (first-party / Bedrock), Grok, Gemini, Kimi, GLM, DeepSeek |
+| Text baselines | Claude (first-party / Bedrock), OpenAI (incl. Azure / Bedrock-hosted), Grok, Gemini, Kimi, GLM, DeepSeek |
 | Video baselines | Alibaba wan3, MiniMax H3, Seedance (Volcengine / BytePlus) |
 | Relay stacks | new-api / one-api (groups, ratios, logs, passthrough), sub2api (subscription pools) |
+| Beyond authenticity | output-token inflation, context truncation, output tampering, data retention, ToS / compliance risk |
+
+The procedure is written in Chinese; an English version is at [`references/en/SKILL.en.md`](skills/relay-provider-audit/references/en/SKILL.en.md), and reports render in English with `"lang": "en"` (see [`assets/examples/text-en/`](skills/relay-provider-audit/assets/examples/text-en/)).
 
 Requirements: Python 3.10+ and Chrome / Chromium for PDFs. The video scripts pull Pillow / numpy / c2pa-python via `uv run --with`.
 

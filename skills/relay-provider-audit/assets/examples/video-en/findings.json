@@ -1,0 +1,243 @@
+{
+ "meta": {
+  "title": "ExampleVideoRelay · wan3.0 audit",
+  "short_title": "ExampleVideoRelay wan3",
+  "supplier": "ExampleVideoRelay",
+  "official": "Alibaba Cloud Model Studio",
+  "model": "wan3.0-t2v",
+  "kind": "video",
+  "date": "2026-01-15",
+  "scope": "480P / 720P / 1080P, 2 s each",
+  "pdf_name": "ExampleVideoRelay-wan3-audit-report.pdf",
+  "lang": "en"
+ },
+ "summary": "**Fictional example**: the video is an Alibaba original (encoder and AIGC tag match), but the link is rehosted on the relay's CDN, usage is missing, and task ids are its own.",
+ "claims": [
+  {
+   "item": "Video source",
+   "claimed": "Alibaba official",
+   "measured": "encoder + AIGC tag match official",
+   "verdict": "good",
+   "label": "Match"
+  },
+  {
+   "item": "Response fields",
+   "claimed": "official-compatible",
+   "measured": "no usage, no official task id",
+   "verdict": "bad",
+   "label": "Wrapped"
+  }
+ ],
+ "verdicts": [
+  {
+   "area": "Video",
+   "verdict": "good",
+   "label": "Original",
+   "text": "encoder and tags match"
+  },
+  {
+   "area": "API",
+   "verdict": "bad",
+   "label": "Wrapped",
+   "text": "link / task id / usage all replaced"
+  },
+  {
+   "area": "Cost",
+   "verdict": "good",
+   "label": "0.8×",
+   "text": "every tier at 80% of official"
+  },
+  {
+   "area": "Draft / params",
+   "verdict": "warn",
+   "label": "N/A",
+   "text": "wan3 has no draft mode"
+  }
+ ],
+ "asks": [
+  {
+   "item": "Return the official task id and usage",
+   "why": "customers reconcile with official task ids"
+  }
+ ],
+ "method": {
+  "kv": [
+   [
+    "Target",
+    "ExampleVideoRelay"
+   ],
+   [
+    "Requests",
+    "3 jobs"
+   ],
+   [
+    "Spent",
+    "¥1.2"
+   ],
+   [
+    "Baseline",
+    "official docs + earlier official outputs"
+   ]
+  ],
+  "note": "All data is fictional."
+ },
+ "authenticity": {
+  "intro": "",
+  "skipped": {
+   "c2pa": "official wan3 outputs carry no C2PA"
+  },
+  "evidence": [
+   {
+    "id": "encoder",
+    "check": "Encoder / container fingerprint",
+    "official": "official encoder + `AIGC` tag",
+    "supplier": "same",
+    "verdict": "good",
+    "label": "Match"
+   },
+   {
+    "id": "bucket",
+    "check": "Video link domain",
+    "official": "Alibaba OSS signed link",
+    "supplier": "`cdn.example-relay.test`",
+    "verdict": "bad",
+    "label": "Rehosted"
+   }
+  ]
+ },
+ "passthrough": {
+  "intro": "Rule 15 ③: are the official fields still there?",
+  "note": "",
+  "rows": [
+   {
+    "id": "video_url",
+    "field": "Video link (official bucket)",
+    "official": "`output.video_url`",
+    "supplier": "`url` (relay CDN)",
+    "status": "rehosted",
+    "note": ""
+   },
+   {
+    "id": "task_id",
+    "field": "Official task id",
+    "official": "`output.task_id`",
+    "supplier": "`id` (its own)",
+    "status": "fake",
+    "note": ""
+   },
+   {
+    "id": "resolution",
+    "field": "Resolution",
+    "official": "`usage.SR`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   },
+   {
+    "id": "duration",
+    "field": "Duration",
+    "official": "`usage.output_video_duration`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   },
+   {
+    "id": "usage",
+    "field": "Usage",
+    "official": "`usage`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   }
+  ]
+ },
+ "diffs": [
+  {
+   "item": "Video link",
+   "official": "OSS signed link, valid 24 h",
+   "supplier": "permanent link on relay CDN",
+   "impact": "integration",
+   "note": ""
+  }
+ ],
+ "errors": {
+  "rows": []
+ },
+ "sections": [],
+ "cost": {
+  "unit": "¥ / second",
+  "intro": "",
+  "tiers": [
+   {
+    "tier": "480P",
+    "official": 0.3,
+    "supplier": 0.24,
+    "ratio": 0.8,
+    "basis": "billed in logs",
+    "tested": true
+   },
+   {
+    "tier": "720P",
+    "official": 0.6,
+    "supplier": 0.48,
+    "ratio": 0.8,
+    "basis": "billed in logs",
+    "tested": true
+   },
+   {
+    "tier": "1080P",
+    "official": 1.2,
+    "supplier": 0.96,
+    "ratio": 0.8,
+    "basis": "billed in logs",
+    "tested": true
+   }
+  ],
+  "note": "Prices are fictional."
+ },
+ "gateway": {
+  "items": [
+   {
+    "item": "Official task id",
+    "tier": "vendor",
+    "detail": "vendor must return it"
+   },
+   {
+    "item": "usage",
+    "tier": "vendor",
+    "detail": "vendor must return it"
+   }
+  ]
+ },
+ "exchanges": [
+  {
+   "title": "Query task",
+   "official": {
+    "jsonl": "artifacts/official.jsonl",
+    "label": "查询"
+   },
+   "supplier": {
+    "jsonl": "artifacts/paid.jsonl",
+    "label": "查询"
+   }
+  }
+ ],
+ "internal": {
+  "decision": "fix-first",
+  "reason": "Original and cheap, but every field is wrapped, so it can't be integrated as official.",
+  "this_line": {
+   "cost": "0.8×",
+   "note": ""
+  },
+  "existing_lines": [],
+  "existing_note": "no wan3 line yet (fictional)",
+  "ask_business": [
+   "can they pass official fields through"
+  ],
+  "risks": [],
+  "next": [
+   "retest passthrough after their fix"
+  ],
+  "redact_terms": []
+ }
+}
