@@ -1,0 +1,85 @@
+<title>ExampleRelay Claude · 内部卡</title><style>
+/* 布局：单栏报告，结论在最前，证据按「接口 → 成片 → 成本」往下排；宽表和代码块各自横向滚动 */
+:root {
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#1a2030; --muted:#5a6377; --line:#d9dde6;
+  --accent:#3b4fd8; --accent-soft:#e6e9fb; --good:#17794a; --good-bg:#e3f4ea; --warn:#9a6200; --warn-bg:#fdf1d8; --bad:#b3261e; --bad-bg:#fbe5e3;
+  --code-bg:#eef0f5; --bar:#aab2c5;
+  --font-body:'IBM Plex Sans','PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif; --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --font-display:'Source Serif 4','Songti SC','Noto Serif CJK SC',serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#12151d; --surface:#1a1f2b; --fg:#e6e9f2; --muted:#9aa3b8; --line:#2d3446;
+  --accent:#8e9cff; --accent-soft:#252c4f; --good:#5fd39b; --good-bg:#16342a; --warn:#f0b955; --warn-bg:#3a2c10; --bad:#ff8a80; --bad-bg:#3d1c1a;
+  --code-bg:#11141b; --bar:#56607a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg:#12151d; --surface:#1a1f2b; --fg:#e6e9f2; --muted:#9aa3b8; --line:#2d3446;
+  --accent:#8e9cff; --accent-soft:#252c4f; --good:#5fd39b; --good-bg:#16342a; --warn:#f0b955; --warn-bg:#3a2c10; --bad:#ff8a80; --bad-bg:#3d1c1a;
+  --code-bg:#11141b; --bar:#56607a; color-scheme: dark; }
+body { background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.65; padding-inline:max(16px,4vw); padding-block:28px 64px; }
+main { max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:36px; }
+h1,h2,h3,h4 { text-wrap:balance; margin:0; line-height:1.25; }
+h1 { font-family:var(--font-display); font-size:clamp(26px,4vw,36px); font-weight:600; letter-spacing:-.01em; }
+h2 { font-size:20px; font-weight:600; padding-bottom:8px; border-bottom:1px solid var(--line); }
+h3 { font-size:16px; font-weight:600; } h4 { font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px; }
+p { margin:0; max-width:72ch; } .muted { color:var(--muted); } .small { font-size:13px; }
+section { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.sub { color:var(--muted); font-size:14px; max-width:78ch; }
+.verdicts { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+.v { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.tag { display:inline-block; white-space:nowrap; align-self:flex-start; font-size:12px; font-weight:600; padding:2px 8px; border-radius:3px; letter-spacing:.04em; }
+.tag.good { background:var(--good-bg); color:var(--good); } .tag.warn { background:var(--warn-bg); color:var(--warn); } .tag.bad { background:var(--bad-bg); color:var(--bad); }
+.v b { font-size:15px; } .v span.d { font-size:13.5px; color:var(--muted); }
+.scroll { overflow-x:auto; max-width:100%; border:1px solid var(--line); border-radius:6px; background:var(--surface); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { font-size:12px; letter-spacing:.04em; color:var(--muted); font-weight:600; background:var(--code-bg); }
+tr:last-child td { border-bottom:0; } td.n,th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+tr.hot td { background:var(--accent-soft); }
+.pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:14px; } .pair > div { min-width:0; }
+pre { margin:0; background:var(--code-bg); border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.55; }
+code { font-family:var(--font-mono); } p code, td code, li code { background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:12.5px; }
+figure { margin:0; display:flex; flex-direction:column; gap:6px; } figure img { width:100%; height:auto; border-radius:6px; border:1px solid var(--line); display:block; }
+figcaption { font-size:13px; color:var(--muted); }
+.grp { display:flex; flex-direction:column; gap:6px; } .grp-h { font-size:13px; font-weight:600; margin-top:6px; }
+.bar { display:grid; grid-template-columns:minmax(150px,260px) 1fr 72px; gap:10px; align-items:center; font-size:13px; }
+.bn { min-width:0; } .bt { background:var(--code-bg); border-radius:2px; height:14px; display:block; } .bt i { display:block; height:100%; background:var(--bar); border-radius:0 3px 3px 0; } .bt i.hot { background:var(--accent); }
+.bv { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--font-mono); font-size:12.5px; }
+.chart { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+@media (max-width:560px) { .bar { grid-template-columns:1fr 64px; } .bar .bt { grid-column:1 / -1; grid-row:2; } .bar .bn { grid-column:1; } .bar .bv { grid-column:2; grid-row:1; } }
+@media print {
+  :root { --bg:#ffffff; } body { padding-inline:0; padding-block:0; font-size:12.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* 打印走普通块流（flex 列在 Chrome 换页时容易整块挪），间距改用 margin */
+  main, section { display:block; } main { max-width:none; } main > * + * { margin-top:22px; } section > * + * { margin-top:12px; }
+  /* 不许截断的最小单位：一行表格、一张卡、一个柱状图 / 图、短代码块、列表项；表格、卡片组、段落本身可以换页（表头每页重复） */
+  tr, .v, .kv > div, .chart, figure, pre, .pair > div, header, li { break-inside:avoid; }
+  table, .scroll, .kv, .verdicts, section { break-inside:auto; } thead { display:table-header-group; }
+  /* 表格换页时首行、末行各粘住相邻一行：不会只剩一行孤零零留在页底或甩到下一页 */
+  tbody tr:last-child, tbody tr:nth-child(2) { break-before:avoid; }
+  p, li, pre { orphans:3; widows:3; }
+  /* 标题、引言粘住下一块的开头；段尾注释（.note）只粘上一块、不粘下一节，免得把下一节一起拖走留半页空白 */
+  h2, h3, h4, .sub { break-after:avoid; } .sub { break-inside:avoid; } .note { break-after:auto; break-before:avoid; }
+  .scroll { overflow:visible; } table { min-width:0; font-size:12px; } th, td { padding:6px 10px; } h2 { font-size:18px; padding-bottom:6px; }
+  /* 图不能截断：宽度撑满正文宽，高度随比例；只对高过一页的图按页高兜底 */
+  figure img { width:100%; height:auto; max-width:100%; max-height:250mm; object-fit:contain; margin:0 auto; }
+  pre { white-space:pre-wrap; word-break:break-all; font-size:10.5px; } .pair { grid-template-columns:1fr 1fr; gap:10px; }
+  .verdicts { grid-template-columns:1fr 1fr; }
+}
+@page { size:A4; margin:14mm 12mm; }
+ul { margin:0; padding-left:1.2em; display:flex; flex-direction:column; gap:6px; max-width:78ch; }
+.kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; } .kv div { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:10px 14px; } .kv b { display:block; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.04em; } .kv span { font-size:14px; font-variant-numeric:tabular-nums; }
+header .meta { color:var(--muted); font-size:13px; margin-top:8px; }
+</style><style>
+main { max-width:900px; gap:16px; } body { font-size:14px; }
+.dec { display:flex; gap:16px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--accent); border-radius:6px; padding:14px 18px; }
+.dec .big { font-size:22px; font-weight:700; white-space:nowrap; padding:4px 12px; border-radius:4px; }
+.big.good { background:var(--good-bg); color:var(--good); } .big.warn { background:var(--warn-bg); color:var(--warn); } .big.bad { background:var(--bad-bg); color:var(--bad); }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .two > div { min-width:0; display:flex; flex-direction:column; gap:8px; }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.card h3 { font-size:14px; } table { min-width:0; font-size:12.5px; } th,td { padding:6px 9px; }
+.foot { color:var(--muted); font-size:12px; } p code, td code, li code { font-size:.9em !important; }
+@media (max-width:640px) { .two { grid-template-columns:1fr; } .dec { flex-direction:column; } }
+@media print { body { font-size:10.5px; line-height:1.45; } main { gap:8px; } h1 { font-size:18px !important; } .dec .big { font-size:16px; } .dec { padding:8px 12px; }
+  .two { grid-template-columns:1fr 1fr; gap:8px; } table { font-size:9.5px; } th,td { padding:3px 6px; } .card { padding:6px 9px; gap:4px; } .card h3 { font-size:12px; }
+  ul { gap:2px; } .two,.card { break-inside:auto; } .dec,li,tr { break-inside:avoid; }  /* 一页 A4：卡片不整块挪页，否则右栏会被推到第 2 页 */
+  main > * + * { margin-top:8px; } .two > div > * + * { margin-top:0; } .card > * + * { margin-top:0; } main { zoom:1; } }
+@page { size:A4; margin:8mm 9mm; }  /* 内部卡只出一页：页边距收窄，放不下时生成器逐级缩小 zoom（见 card_pdf） */
+</style><main><header><h1 style="font-size:24px">ExampleRelay · Claude Sonnet X 接入检测 · 内部决策卡</h1><div class="meta">2026-01-15 · 不外发 · 外发证据版：artifacts/ExampleRelay-Claude-检测报告.pdf</div></header><div class="dec"><span class="big warn">备用</span><div><p style="max-width:none"><b><b>虚构样例</b>：后端是 AWS Bedrock 上的真 Claude（不是一方 API），没有注入、没有换模型；非法参数被吞成 200，价格 = 官方 × 1.2。</b></p><p style="max-width:none;margin-top:6px">真模型、无注入，但吞参数 + 比现有线路贵。</p></div></div><div class="card"><h3>和现有同模型线路比</h3><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:20%"><col style="width:24%"><col style="width:14%"><col style="width:14%"><col style="width:28%"></colgroup><thead><tr><th class="">线路</th><th class="">成本</th><th class="">30 天成功率</th><th class="">30 天量</th><th class="">备注</th></tr></thead><tbody><tr><td class=""><b>ExampleRelay</b><br><span class="tag warn">本次测</span></td><td class="">1.2×</td><td class="">未接入</td><td class="">—</td><td class="">官方 list 价倍数</td></tr><tr><td class="">line-a<br><span class="muted">VendorA</span></td><td class="">1.1×</td><td class="">99.2%</td><td class="">120 万次</td><td class="">主线</td></tr></tbody></table></div><p class="foot">2026-01-15 快照（虚构）</p></div><div class="two"><div><div class="card"><h3>声称 vs 实测</h3><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:22%"><col style="width:22%"><col style="width:56%"></colgroup><tbody><tr><td><span class="tag warn">不符</span></td><td>渠道</td><td>AWS Bedrock（<code>msg_bdrk</code> 前缀）</td></tr><tr><td><span class="tag good">一致</span></td><td>模型</td><td>claude-sonnet-x（token 逐个相等）</td></tr></tbody></table></div></div></div><div><div class="card"><h3>网关接入：<span class="tag bad">要对方补</span></h3><ul><li><span class="tag good">不改代码就能接</span> <b>Anthropic 原生 /v1/messages</b>：路径、外壳都是官方格式</li><li><b>非法参数被吞</b>：要对方原样透传 400</li></ul></div><div class="card"><h3>要问商务 / 对方</h3><ul><li>人民币充值汇率</li><li>能不能修参数透传</li></ul></div><div class="card"><h3>风险</h3><ul><li>Bedrock 不支持部分 beta 功能</li></ul></div><div class="card"><h3>下一步</h3><ul><li>对方修完再测吞参数</li></ul></div></div></div></main>

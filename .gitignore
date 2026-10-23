@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+# 含 key 的产出只留本机（规则 4）
+*secret*
+.env
+.env.*
+# 你自己的检测任务目录默认不入库
+audits/

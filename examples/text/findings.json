@@ -1,0 +1,238 @@
+{
+ "meta": {
+  "title": "ExampleRelay · Claude Sonnet X 接入检测",
+  "short_title": "ExampleRelay Claude",
+  "supplier": "ExampleRelay",
+  "official": "Anthropic 官方 API",
+  "model": "claude-sonnet-x",
+  "kind": "text",
+  "date": "2026-01-15",
+  "scope": "「claude-official」分组 · 非流式 / 流式 / 报错",
+  "pdf_name": "ExampleRelay-Claude-检测报告.pdf"
+ },
+ "summary": "**虚构样例**：后端是 AWS Bedrock 上的真 Claude（不是一方 API），没有注入、没有换模型；非法参数被吞成 200，价格 = 官方 × 1.2。",
+ "claims": [
+  {
+   "item": "渠道",
+   "claimed": "Anthropic 官方直连",
+   "measured": "AWS Bedrock（`msg_bdrk` 前缀）",
+   "verdict": "warn",
+   "label": "不符"
+  },
+  {
+   "item": "模型",
+   "claimed": "claude-sonnet-x",
+   "measured": "claude-sonnet-x（token 逐个相等）",
+   "verdict": "good",
+   "label": "一致"
+  }
+ ],
+ "verdicts": [
+  {
+   "area": "后端",
+   "verdict": "warn",
+   "label": "Bedrock",
+   "text": "id 前缀 `msg_bdrk`，不是一方 API"
+  },
+  {
+   "area": "模型",
+   "verdict": "good",
+   "label": "真模型",
+   "text": "input_tokens 与官方 count_tokens 逐个相等"
+  },
+  {
+   "area": "接口",
+   "verdict": "warn",
+   "label": "吞参数",
+   "text": "temperature=9 官方 400，这家 200"
+  },
+  {
+   "area": "成本",
+   "verdict": "warn",
+   "label": "1.2×",
+   "text": "显示价 = 官方 list 价 × 1.2"
+  }
+ ],
+ "asks": [
+  {
+   "item": "非法参数请原样返回 400",
+   "why": "客户端靠 400 发现参数写错，吞掉会让错误静默"
+  }
+ ],
+ "method": {
+  "kv": [
+   [
+    "对象",
+    "ExampleRelay `claude-official` 分组"
+   ],
+   [
+    "测了多少",
+    "免费探针 12 次 + 付费 6 次"
+   ],
+   [
+    "花了多少",
+    "$0.02"
+   ],
+   [
+    "官方基准",
+    "官方 count_tokens（当天现取）+ 官方文档"
+   ]
+  ],
+  "note": "全部是虚构数据，只演示 findings.json 怎么填。"
+ },
+ "authenticity": {
+  "intro": "四项必查。",
+  "skipped": {},
+  "evidence": [
+   {
+    "id": "id_prefix",
+    "check": "响应 id 前缀",
+    "official": "`msg_011C…`",
+    "supplier": "`msg_bdrk_01…`",
+    "verdict": "warn",
+    "label": "Bedrock"
+   },
+   {
+    "id": "token_count",
+    "check": "输入 token 和官方逐个比",
+    "official": "14 / 1,203（带 text_editor）",
+    "supplier": "14 / 1,203",
+    "verdict": "good",
+    "label": "相等"
+   },
+   {
+    "id": "model_swap",
+    "check": "有没有换模型",
+    "official": "max_tokens 9999999 → 400 报 claude-sonnet-x",
+    "supplier": "同样报 claude-sonnet-x",
+    "verdict": "good",
+    "label": "没换"
+   },
+   {
+    "id": "injection",
+    "check": "有没有注入提示词",
+    "official": "—",
+    "supplier": "token 不多、念不出 system",
+    "verdict": "good",
+    "label": "没注入"
+   }
+  ]
+ },
+ "diffs": [
+  {
+   "item": "非法 temperature",
+   "official": "400 invalid_request_error",
+   "supplier": "200，值被丢",
+   "impact": "customer",
+   "note": "客户发现不了参数写错"
+  },
+  {
+   "item": "响应头",
+   "official": "`request-id`、ratelimit 头",
+   "supplier": "只有 `x-oneapi-request-id`",
+   "impact": "integration",
+   "note": "限流要靠自己的重试策略"
+  }
+ ],
+ "errors": {
+  "rows": [
+   {
+    "input": "temperature=9",
+    "official": {
+     "jsonl": "artifacts/official.jsonl",
+     "label": "temperature=9"
+    },
+    "supplier": {
+     "jsonl": "artifacts/supplier.jsonl",
+     "label": "temperature=9"
+    },
+    "verdict": "bad",
+    "label": "被吞"
+   }
+  ]
+ },
+ "sections": [],
+ "cost": {
+  "unit": "$ / 百万 token",
+  "intro": "按站点 `/api/pricing` 的 billing_expr × group_ratio 算。",
+  "tiers": [
+   {
+    "tier": "输入",
+    "official": 2,
+    "supplier": 2.4,
+    "ratio": 1.2,
+    "basis": "billing_expr p*2 × ratio 1.2",
+    "tested": true
+   },
+   {
+    "tier": "输出",
+    "official": 10,
+    "supplier": 12,
+    "ratio": 1.2,
+    "basis": "billing_expr c*10 × ratio 1.2",
+    "tested": true
+   }
+  ],
+  "note": "人民币充值汇率未知，要问商务。"
+ },
+ "gateway": {
+  "items": [
+   {
+    "item": "Anthropic 原生 /v1/messages",
+    "tier": "ready",
+    "detail": "路径、外壳都是官方格式"
+   },
+   {
+    "item": "非法参数被吞",
+    "tier": "vendor",
+    "detail": "要对方原样透传 400"
+   }
+  ]
+ },
+ "exchanges": [
+  {
+   "title": "非流式 · 最小请求",
+   "official": {
+    "jsonl": "artifacts/official.jsonl",
+    "label": "ok"
+   },
+   "supplier": {
+    "jsonl": "artifacts/supplier.jsonl",
+    "label": "ok"
+   }
+  }
+ ],
+ "internal": {
+  "decision": "备用",
+  "reason": "真模型、无注入，但吞参数 + 比现有线路贵。",
+  "this_line": {
+   "cost": "1.2×",
+   "note": "官方 list 价倍数"
+  },
+  "existing_lines": [
+   {
+    "line": "line-a",
+    "supplier": "VendorA",
+    "cost": "1.1×",
+    "success_30d": "99.2%",
+    "volume_30d": "120 万次",
+    "note": "主线"
+   }
+  ],
+  "existing_note": "2026-01-15 快照（虚构）",
+  "ask_business": [
+   "人民币充值汇率",
+   "能不能修参数透传"
+  ],
+  "risks": [
+   "Bedrock 不支持部分 beta 功能"
+  ],
+  "next": [
+   "对方修完再测吞参数"
+  ],
+  "redact_terms": [
+   "VendorA",
+   "line-a"
+  ]
+ }
+}

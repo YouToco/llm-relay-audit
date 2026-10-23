@@ -1,0 +1,103 @@
+<title>ExampleVideoRelay wan3</title><style>
+/* 布局：单栏报告，结论在最前，证据按「接口 → 成片 → 成本」往下排；宽表和代码块各自横向滚动 */
+:root {
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#1a2030; --muted:#5a6377; --line:#d9dde6;
+  --accent:#3b4fd8; --accent-soft:#e6e9fb; --good:#17794a; --good-bg:#e3f4ea; --warn:#9a6200; --warn-bg:#fdf1d8; --bad:#b3261e; --bad-bg:#fbe5e3;
+  --code-bg:#eef0f5; --bar:#aab2c5;
+  --font-body:'IBM Plex Sans','PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif; --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --font-display:'Source Serif 4','Songti SC','Noto Serif CJK SC',serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#12151d; --surface:#1a1f2b; --fg:#e6e9f2; --muted:#9aa3b8; --line:#2d3446;
+  --accent:#8e9cff; --accent-soft:#252c4f; --good:#5fd39b; --good-bg:#16342a; --warn:#f0b955; --warn-bg:#3a2c10; --bad:#ff8a80; --bad-bg:#3d1c1a;
+  --code-bg:#11141b; --bar:#56607a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg:#12151d; --surface:#1a1f2b; --fg:#e6e9f2; --muted:#9aa3b8; --line:#2d3446;
+  --accent:#8e9cff; --accent-soft:#252c4f; --good:#5fd39b; --good-bg:#16342a; --warn:#f0b955; --warn-bg:#3a2c10; --bad:#ff8a80; --bad-bg:#3d1c1a;
+  --code-bg:#11141b; --bar:#56607a; color-scheme: dark; }
+body { background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.65; padding-inline:max(16px,4vw); padding-block:28px 64px; }
+main { max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:36px; }
+h1,h2,h3,h4 { text-wrap:balance; margin:0; line-height:1.25; }
+h1 { font-family:var(--font-display); font-size:clamp(26px,4vw,36px); font-weight:600; letter-spacing:-.01em; }
+h2 { font-size:20px; font-weight:600; padding-bottom:8px; border-bottom:1px solid var(--line); }
+h3 { font-size:16px; font-weight:600; } h4 { font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px; }
+p { margin:0; max-width:72ch; } .muted { color:var(--muted); } .small { font-size:13px; }
+section { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.sub { color:var(--muted); font-size:14px; max-width:78ch; }
+.verdicts { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+.v { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.tag { display:inline-block; white-space:nowrap; align-self:flex-start; font-size:12px; font-weight:600; padding:2px 8px; border-radius:3px; letter-spacing:.04em; }
+.tag.good { background:var(--good-bg); color:var(--good); } .tag.warn { background:var(--warn-bg); color:var(--warn); } .tag.bad { background:var(--bad-bg); color:var(--bad); }
+.v b { font-size:15px; } .v span.d { font-size:13.5px; color:var(--muted); }
+.scroll { overflow-x:auto; max-width:100%; border:1px solid var(--line); border-radius:6px; background:var(--surface); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { font-size:12px; letter-spacing:.04em; color:var(--muted); font-weight:600; background:var(--code-bg); }
+tr:last-child td { border-bottom:0; } td.n,th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+tr.hot td { background:var(--accent-soft); }
+.pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:14px; } .pair > div { min-width:0; }
+pre { margin:0; background:var(--code-bg); border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.55; }
+code { font-family:var(--font-mono); } p code, td code, li code { background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:12.5px; }
+figure { margin:0; display:flex; flex-direction:column; gap:6px; } figure img { width:100%; height:auto; border-radius:6px; border:1px solid var(--line); display:block; }
+figcaption { font-size:13px; color:var(--muted); }
+.grp { display:flex; flex-direction:column; gap:6px; } .grp-h { font-size:13px; font-weight:600; margin-top:6px; }
+.bar { display:grid; grid-template-columns:minmax(150px,260px) 1fr 72px; gap:10px; align-items:center; font-size:13px; }
+.bn { min-width:0; } .bt { background:var(--code-bg); border-radius:2px; height:14px; display:block; } .bt i { display:block; height:100%; background:var(--bar); border-radius:0 3px 3px 0; } .bt i.hot { background:var(--accent); }
+.bv { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--font-mono); font-size:12.5px; }
+.chart { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+@media (max-width:560px) { .bar { grid-template-columns:1fr 64px; } .bar .bt { grid-column:1 / -1; grid-row:2; } .bar .bn { grid-column:1; } .bar .bv { grid-column:2; grid-row:1; } }
+@media print {
+  :root { --bg:#ffffff; } body { padding-inline:0; padding-block:0; font-size:12.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* 打印走普通块流（flex 列在 Chrome 换页时容易整块挪），间距改用 margin */
+  main, section { display:block; } main { max-width:none; } main > * + * { margin-top:22px; } section > * + * { margin-top:12px; }
+  /* 不许截断的最小单位：一行表格、一张卡、一个柱状图 / 图、短代码块、列表项；表格、卡片组、段落本身可以换页（表头每页重复） */
+  tr, .v, .kv > div, .chart, figure, pre, .pair > div, header, li { break-inside:avoid; }
+  table, .scroll, .kv, .verdicts, section { break-inside:auto; } thead { display:table-header-group; }
+  /* 表格换页时首行、末行各粘住相邻一行：不会只剩一行孤零零留在页底或甩到下一页 */
+  tbody tr:last-child, tbody tr:nth-child(2) { break-before:avoid; }
+  p, li, pre { orphans:3; widows:3; }
+  /* 标题、引言粘住下一块的开头；段尾注释（.note）只粘上一块、不粘下一节，免得把下一节一起拖走留半页空白 */
+  h2, h3, h4, .sub { break-after:avoid; } .sub { break-inside:avoid; } .note { break-after:auto; break-before:avoid; }
+  .scroll { overflow:visible; } table { min-width:0; font-size:12px; } th, td { padding:6px 10px; } h2 { font-size:18px; padding-bottom:6px; }
+  /* 图不能截断：宽度撑满正文宽，高度随比例；只对高过一页的图按页高兜底 */
+  figure img { width:100%; height:auto; max-width:100%; max-height:250mm; object-fit:contain; margin:0 auto; }
+  pre { white-space:pre-wrap; word-break:break-all; font-size:10.5px; } .pair { grid-template-columns:1fr 1fr; gap:10px; }
+  .verdicts { grid-template-columns:1fr 1fr; }
+}
+@page { size:A4; margin:14mm 12mm; }
+ul { margin:0; padding-left:1.2em; display:flex; flex-direction:column; gap:6px; max-width:78ch; }
+.kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; } .kv div { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:10px 14px; } .kv b { display:block; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.04em; } .kv span { font-size:14px; font-variant-numeric:tabular-nums; }
+header .meta { color:var(--muted); font-size:13px; margin-top:8px; }
+</style><style>
+.tldr { background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:6px; padding:14px 18px; }
+.tldr p { max-width:none; font-size:15px; }
+td,td span,td code { overflow-wrap:anywhere; } td .muted { font-size:12px; }
+ol.asks { margin:0; padding-left:1.4em; display:flex; flex-direction:column; gap:6px; max-width:none; }
+.appendix h3 { margin-top:6px; }
+@media print {
+  main > * + * { margin-top:16px; } section > * + * { margin-top:8px; } .appendix h3 { margin-top:14px; }
+  pre.long, .pair > div:has(pre.long) { break-inside:auto; }
+  .pair:not(:has(pre.long)) { display:block; } .pair:not(:has(pre.long)) > div { display:inline-block; width:49%; vertical-align:top; margin-right:1%; }
+  .tldr, .keep, ol.asks li { break-inside:avoid; } .kv { grid-template-columns:repeat(4,1fr); }
+  /* 附录另起一页；里面的代码块可以跨页（标题 / 小标题粘住代码块开头至少 4 行），不然每段请求响应整块跳页留大片空白 */
+  .appendix { break-before:page; } .appendix pre { break-inside:auto; orphans:4; widows:3; }
+  .appendix .pair { display:grid !important; } .appendix .pair > div { display:block !important; width:auto !important; margin:0 !important; break-inside:auto; }
+}
+</style><main><header><h1>ExampleVideoRelay · wan3.0 接入检测</h1><div class="meta">ExampleVideoRelay 对照 阿里云百炼 · 2026-01-15 · 480P / 720P / 1080P 各 2 秒</div></header><section><div class="tldr"><p><b>一句话：</b><b>虚构样例</b>：成片是阿里原片（编码器、AIGC 标签一致），但链接转存到自家 CDN、没有 usage、任务号是自己的。</p></div><div class="verdicts"><div class="v"><span class="tag good">原片</span><b>成片</b><span class="d">编码器与标签一致</span></div><div class="v"><span class="tag bad">封装</span><b>接口</b><span class="d">链接 / 任务号 / usage 都换成自己的</span></div><div class="v"><span class="tag good">0.8×</span><b>成本</b><span class="d">各档都是官方 8 折</span></div><div class="v"><span class="tag warn">不适用</span><b>样片 / 参数</b><span class="d">wan3 没有样片模式</span></div></div></section><section><h2>1 声称 vs 实测</h2><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:22%"><col style="width:32%"><col style="width:46%"></colgroup><thead><tr><th class="">项</th><th class="">ExampleVideoRelay 声称</th><th class="">实测（对照官方）</th></tr></thead><tbody><tr><td class=""><span class="tag good">一致</span><br>成片来源</td><td class="">阿里官方</td><td class="">编码器 + AIGC 标签与官方一致</td></tr><tr><td class=""><span class="tag bad">封装</span><br>返回字段</td><td class="">兼容官方</td><td class="">无 usage、无官方任务号</td></tr></tbody></table></div></section><section><h2>2 需要 ExampleVideoRelay 处理的事</h2><ol class="asks"><li><b>返回官方任务号和 usage</b>：客户要拿官方任务号对账</li><li><b>官方任务号</b>：要对方返回</li><li><b>usage</b>：要对方返回</li></ol></section><section><h2>3 怎么测的</h2><div class="kv"><div><b>对象</b><span>ExampleVideoRelay</span></div><div><b>测了多少</b><span>3 单</span></div><div><b>花了多少</b><span>¥1.2</span></div><div><b>官方基准</b><span>官方文档 + 历史官方成片</span></div></div><p class="sub note">全部是虚构数据。</p></section><section><h2>4 是不是官方的东西：真伪证据</h2><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:22%"><col style="width:36%"><col style="width:42%"></colgroup><thead><tr><th class="">证据</th><th class="">官方（阿里云百炼）</th><th class="">ExampleVideoRelay</th></tr></thead><tbody><tr><td class=""><span class="tag good">一致</span><br>编码器 / 封装指纹</td><td class="">官方成片编码器 + <code>AIGC</code> 标签</td><td class="">相同</td></tr><tr><td class=""><span class="tag bad">转存</span><br>成片链接域名</td><td class="">阿里 OSS 签名直链</td><td class=""><code>cdn.example-relay.test</code></td></tr><tr><td class=""><span class="tag warn">没测</span><br>C2PA 内容凭证</td><td class="">—</td><td class="">wan3 官方成片不带 C2PA</td></tr></tbody></table></div></section><section><h2>5 参数透传：官方字段还在不在</h2><p class="sub"><span class="tag bad">全被封装</span> 规则 15 ③：官方字段还在不在。</p><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:24%"><col style="width:34%"><col style="width:42%"></colgroup><thead><tr><th class="">字段</th><th class="">官方（阿里云百炼）</th><th class="">ExampleVideoRelay</th></tr></thead><tbody><tr><td class=""><span class="tag bad">非官方值</span><br>成片链接（官方桶直链）</td><td class=""><code>output.video_url</code></td><td class=""><code>url</code>（自家 CDN）</td></tr><tr><td class=""><span class="tag bad">非官方值</span><br>官方任务号</td><td class=""><code>output.task_id</code></td><td class=""><code>id</code>（自己的号）</td></tr><tr><td class=""><span class="tag bad">丢失</span><br>清晰度</td><td class=""><code>usage.SR</code></td><td class="">—</td></tr><tr><td class=""><span class="tag bad">丢失</span><br>时长</td><td class=""><code>usage.output_video_duration</code></td><td class="">—</td></tr><tr><td class=""><span class="tag bad">丢失</span><br>用量</td><td class=""><code>usage</code></td><td class="">—</td></tr></tbody></table></div></section><section><h2>6 和官方的差异（按影响分级）</h2><h3><span class="tag warn">影响接入</span> 1 项</h3><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:24%"><col style="width:34%"><col style="width:42%"></colgroup><thead><tr><th class="">项</th><th class="">官方</th><th class="">ExampleVideoRelay</th></tr></thead><tbody><tr><td class="">成片链接</td><td class="">OSS 签名直链，24 小时有效</td><td class="">自家 CDN 永久链接</td></tr></tbody></table></div></section><section><h2>7 参数与报错</h2><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:24%"><col style="width:30%"><col style="width:46%"></colgroup><thead><tr><th class="">输入</th><th class="">官方</th><th class="">ExampleVideoRelay</th></tr></thead><tbody></tbody></table></div></section><section><h2>8 成本倍率</h2><div class="scroll"><table style="table-layout:fixed"><colgroup><col style="width:18%"><col style="width:20%"><col style="width:20%"><col style="width:10%"><col style="width:32%"></colgroup><thead><tr><th class="">档位</th><th class="">官方（¥ / 秒）</th><th class="">ExampleVideoRelay（¥ / 秒）</th><th class="n">倍率</th><th class="">依据</th></tr></thead><tbody><tr><td class="">480P</td><td class="">0.3</td><td class="">0.24</td><td class="n">80%</td><td class="">日志实扣</td></tr><tr><td class="">720P</td><td class="">0.6</td><td class="">0.48</td><td class="n">80%</td><td class="">日志实扣</td></tr><tr><td class="">1080P</td><td class="">1.2</td><td class="">0.96</td><td class="n">80%</td><td class="">日志实扣</td></tr></tbody></table></div><div class="chart"><div class="bar"><span class="bn">480P · 官方</span><span class="bt"><i class="" style="width:25.0%"></i></span><span class="bv">0.3</span></div><div class="bar"><span class="bn">480P · ExampleVideoRelay</span><span class="bt"><i class="hot" style="width:20.0%"></i></span><span class="bv">0.24</span></div><div class="bar"><span class="bn">720P · 官方</span><span class="bt"><i class="" style="width:50.0%"></i></span><span class="bv">0.6</span></div><div class="bar"><span class="bn">720P · ExampleVideoRelay</span><span class="bt"><i class="hot" style="width:40.0%"></i></span><span class="bv">0.48</span></div><div class="bar"><span class="bn">1080P · 官方</span><span class="bt"><i class="" style="width:100.0%"></i></span><span class="bv">1.2</span></div><div class="bar"><span class="bn">1080P · ExampleVideoRelay</span><span class="bt"><i class="hot" style="width:80.0%"></i></span><span class="bv">0.96</span></div></div><p class="sub note">价格为虚构。</p></section><section class="appendix"><h2>附录 · 原始请求与响应</h2><p class="sub">key 打码；只留 server / x-new-api-version / x-request-id 响应头；长文本、base64、签名链接截断。全部原始记录在任务目录 artifacts/。</p><h3>查询任务</h3><div class="pair"><div><h4>官方请求</h4><pre><code>GET {base}/api/v1/tasks/ex-task-official
+Authorization: Bearer ***
+Content-Type: application/json</code></pre></div><div><h4>ExampleVideoRelay 请求</h4><pre><code>GET {base}/v1/video/generations/relay_task_0001
+Authorization: Bearer ***
+Content-Type: application/json</code></pre></div></div><div><h4>官方响应</h4><pre><code>HTTP 200
+{
+ &quot;request_id&quot;: &quot;ex-off&quot;,
+ &quot;output&quot;: {
+  &quot;task_id&quot;: &quot;ex-task-official&quot;,
+  &quot;task_status&quot;: &quot;SUCCEEDED&quot;,
+  &quot;video_url&quot;: &quot;https://dashscope-result-example.oss-cn-beijing.aliyuncs.com/....mp4?…&quot;
+ },
+ &quot;usage&quot;: {&quot;output_video_duration&quot;: 2, &quot;SR&quot;: 480}
+}</code></pre></div><div><h4>ExampleVideoRelay 响应</h4><pre><code>HTTP 200
+{
+ &quot;id&quot;: &quot;relay_task_0001&quot;,
+ &quot;status&quot;: &quot;succeeded&quot;,
+ &quot;url&quot;: &quot;https://cdn.example-relay.test/v/0001.mp4&quot;
+}</code></pre></div></section></main>

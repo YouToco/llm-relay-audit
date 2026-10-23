@@ -1,0 +1,242 @@
+{
+ "meta": {
+  "title": "ExampleVideoRelay · wan3.0 接入检测",
+  "short_title": "ExampleVideoRelay wan3",
+  "supplier": "ExampleVideoRelay",
+  "official": "阿里云百炼",
+  "model": "wan3.0-t2v",
+  "kind": "video",
+  "date": "2026-01-15",
+  "scope": "480P / 720P / 1080P 各 2 秒",
+  "pdf_name": "ExampleVideoRelay-wan3-检测报告.pdf"
+ },
+ "summary": "**虚构样例**：成片是阿里原片（编码器、AIGC 标签一致），但链接转存到自家 CDN、没有 usage、任务号是自己的。",
+ "claims": [
+  {
+   "item": "成片来源",
+   "claimed": "阿里官方",
+   "measured": "编码器 + AIGC 标签与官方一致",
+   "verdict": "good",
+   "label": "一致"
+  },
+  {
+   "item": "返回字段",
+   "claimed": "兼容官方",
+   "measured": "无 usage、无官方任务号",
+   "verdict": "bad",
+   "label": "封装"
+  }
+ ],
+ "verdicts": [
+  {
+   "area": "成片",
+   "verdict": "good",
+   "label": "原片",
+   "text": "编码器与标签一致"
+  },
+  {
+   "area": "接口",
+   "verdict": "bad",
+   "label": "封装",
+   "text": "链接 / 任务号 / usage 都换成自己的"
+  },
+  {
+   "area": "成本",
+   "verdict": "good",
+   "label": "0.8×",
+   "text": "各档都是官方 8 折"
+  },
+  {
+   "area": "样片 / 参数",
+   "verdict": "warn",
+   "label": "不适用",
+   "text": "wan3 没有样片模式"
+  }
+ ],
+ "asks": [
+  {
+   "item": "返回官方任务号和 usage",
+   "why": "客户要拿官方任务号对账"
+  }
+ ],
+ "method": {
+  "kv": [
+   [
+    "对象",
+    "ExampleVideoRelay"
+   ],
+   [
+    "测了多少",
+    "3 单"
+   ],
+   [
+    "花了多少",
+    "¥1.2"
+   ],
+   [
+    "官方基准",
+    "官方文档 + 历史官方成片"
+   ]
+  ],
+  "note": "全部是虚构数据。"
+ },
+ "authenticity": {
+  "intro": "",
+  "skipped": {
+   "c2pa": "wan3 官方成片不带 C2PA"
+  },
+  "evidence": [
+   {
+    "id": "encoder",
+    "check": "编码器 / 封装指纹",
+    "official": "官方成片编码器 + `AIGC` 标签",
+    "supplier": "相同",
+    "verdict": "good",
+    "label": "一致"
+   },
+   {
+    "id": "bucket",
+    "check": "成片链接域名",
+    "official": "阿里 OSS 签名直链",
+    "supplier": "`cdn.example-relay.test`",
+    "verdict": "bad",
+    "label": "转存"
+   }
+  ]
+ },
+ "passthrough": {
+  "intro": "规则 15 ③：官方字段还在不在。",
+  "note": "",
+  "rows": [
+   {
+    "id": "video_url",
+    "field": "成片链接（官方桶直链）",
+    "official": "`output.video_url`",
+    "supplier": "`url`（自家 CDN）",
+    "status": "fake",
+    "note": ""
+   },
+   {
+    "id": "task_id",
+    "field": "官方任务号",
+    "official": "`output.task_id`",
+    "supplier": "`id`（自己的号）",
+    "status": "fake",
+    "note": ""
+   },
+   {
+    "id": "resolution",
+    "field": "清晰度",
+    "official": "`usage.SR`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   },
+   {
+    "id": "duration",
+    "field": "时长",
+    "official": "`usage.output_video_duration`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   },
+   {
+    "id": "usage",
+    "field": "用量",
+    "official": "`usage`",
+    "supplier": "—",
+    "status": "lost",
+    "note": ""
+   }
+  ]
+ },
+ "diffs": [
+  {
+   "item": "成片链接",
+   "official": "OSS 签名直链，24 小时有效",
+   "supplier": "自家 CDN 永久链接",
+   "impact": "integration",
+   "note": ""
+  }
+ ],
+ "errors": {
+  "rows": []
+ },
+ "sections": [],
+ "cost": {
+  "unit": "¥ / 秒",
+  "intro": "",
+  "tiers": [
+   {
+    "tier": "480P",
+    "official": 0.3,
+    "supplier": 0.24,
+    "ratio": 0.8,
+    "basis": "日志实扣",
+    "tested": true
+   },
+   {
+    "tier": "720P",
+    "official": 0.6,
+    "supplier": 0.48,
+    "ratio": 0.8,
+    "basis": "日志实扣",
+    "tested": true
+   },
+   {
+    "tier": "1080P",
+    "official": 1.2,
+    "supplier": 0.96,
+    "ratio": 0.8,
+    "basis": "日志实扣",
+    "tested": true
+   }
+  ],
+  "note": "价格为虚构。"
+ },
+ "gateway": {
+  "items": [
+   {
+    "item": "官方任务号",
+    "tier": "vendor",
+    "detail": "要对方返回"
+   },
+   {
+    "item": "usage",
+    "tier": "vendor",
+    "detail": "要对方返回"
+   }
+  ]
+ },
+ "exchanges": [
+  {
+   "title": "查询任务",
+   "official": {
+    "jsonl": "artifacts/official.jsonl",
+    "label": "查询"
+   },
+   "supplier": {
+    "jsonl": "artifacts/paid.jsonl",
+    "label": "查询"
+   }
+  }
+ ],
+ "internal": {
+  "decision": "先修后接",
+  "reason": "原片且便宜，但字段全被封装，没法按官方接入。",
+  "this_line": {
+   "cost": "0.8×",
+   "note": ""
+  },
+  "existing_lines": [],
+  "existing_note": "还没有 wan3 线路（虚构）",
+  "ask_business": [
+   "能不能透传官方字段"
+  ],
+  "risks": [],
+  "next": [
+   "对方改完重测透传"
+  ],
+  "redact_terms": []
+ }
+}

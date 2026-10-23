@@ -1,0 +1,10 @@
+{
+  "name": "llm-relay-audit",
+  "version": "0.1.0",
+  "description": "Audit third-party AI API relays / resellers against the official API: authenticity (real model? swapped? injected prompts? original video?), params & errors, token accounting, cost ratio, and an evidence report generator.",
+  "author": { "name": "YouToco", "url": "https://github.com/YouToco" },
+  "homepage": "https://github.com/YouToco/llm-relay-audit",
+  "repository": "https://github.com/YouToco/llm-relay-audit",
+  "license": "MIT",
+  "keywords": ["llm", "relay", "reseller", "new-api", "sub2api", "audit", "claude", "seedance", "c2pa", "skill"]
+}

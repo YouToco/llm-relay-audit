@@ -1,0 +1,15 @@
+{
+  "name": "llm-relay-audit",
+  "description": "Agent skill for auditing AI API relays / resellers against the official API.",
+  "owner": {
+    "name": "YouToco",
+    "url": "https://github.com/YouToco"
+  },
+  "plugins": [
+    {
+      "name": "llm-relay-audit",
+      "source": "./",
+      "description": "Audit third-party AI API relays / resellers against the official API (text + video), with an evidence report generator."
+    }
+  ]
+}
