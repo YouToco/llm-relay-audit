@@ -7,3 +7,6 @@ __pycache__/
 .env.*
 # 你自己的检测任务目录默认不入库
 audits/
+# 样例重新生成的产出（展示用 PDF 在 docs/samples/）
+skills/relay-provider-audit/assets/examples/*/artifacts/*.html
+skills/relay-provider-audit/assets/examples/*/artifacts/*.pdf

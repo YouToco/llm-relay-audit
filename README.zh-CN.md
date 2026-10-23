@@ -8,16 +8,26 @@
 
 ![生成的报告页面](docs/images/gallery-zh.png)
 
-上图每一页都是 `build_report.py` 从虚构样例 [`examples/`](examples/) 直接生成的，完整 PDF 也在那里。
+上图每一页都是 `build_report.py` 从虚构样例 [`assets/examples/`](skills/relay-provider-audit/assets/examples/) 直接生成的，完整 PDF 在 [`docs/samples/`](docs/samples/)。
 
 ## 安装
+
+**任意 agent（Claude Code、Codex、Cursor、Gemini CLI……）**，用 [Agent Skills](https://agentskills.io) 命令行：
+
+```bash
+npx skills add YouToco/llm-relay-audit
+```
+
+加 `-g` 装到用户目录；加 `-a claude-code` / `-a codex` 指定 agent。
+
+**Claude Code 插件：**
 
 ```
 /plugin marketplace add YouToco/llm-relay-audit
 /plugin install llm-relay-audit@llm-relay-audit
 ```
 
-也可以直接复制目录：`cp -r skills/relay-provider-audit ~/.claude/skills/`。其他 agent 让它读 [`SKILL.md`](skills/relay-provider-audit/SKILL.md) 就行。
+skill 符合 [Agent Skills 规范](https://agentskills.io/specification)，`skills-ref validate` 校验通过。
 
 ## 用法
 
@@ -26,7 +36,7 @@
 自己出一份报告：
 
 ```bash
-python3 -I skills/relay-provider-audit/scripts/build_report.py examples/text/findings.json --pdf
+python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-provider-audit/assets/examples/text/findings.json --pdf
 ```
 
 | 覆盖 | 内容 |

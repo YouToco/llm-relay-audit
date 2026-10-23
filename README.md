@@ -8,16 +8,26 @@
 
 ![Generated report pages](docs/images/gallery-en.png)
 
-Every page above is rendered by `build_report.py` from the fictional [`examples/`](examples/). Open the PDFs there to see the full reports.
+Every page above is rendered by `build_report.py` from the fictional [`assets/examples/`](skills/relay-provider-audit/assets/examples/). Full PDFs: [`docs/samples/`](docs/samples/).
 
 ## Install
+
+**Any agent (Claude Code, Codex, Cursor, Gemini CLI…)** via the [Agent Skills](https://agentskills.io) CLI:
+
+```bash
+npx skills add YouToco/llm-relay-audit
+```
+
+Add `-g` for a user-level install, or `-a claude-code` / `-a codex` to pick agents.
+
+**Claude Code plugin:**
 
 ```
 /plugin marketplace add YouToco/llm-relay-audit
 /plugin install llm-relay-audit@llm-relay-audit
 ```
 
-Or copy the folder: `cp -r skills/relay-provider-audit ~/.claude/skills/`. For other agents, point them at [`SKILL.md`](skills/relay-provider-audit/SKILL.md).
+The skill follows the [Agent Skills spec](https://agentskills.io/specification) and passes `skills-ref validate`.
 
 ## Use
 
@@ -26,7 +36,7 @@ Tell your agent: *"audit this relay: base URL `https://relay.example`, model `cl
 To render a report yourself:
 
 ```bash
-python3 -I skills/relay-provider-audit/scripts/build_report.py examples/text/findings.json --pdf
+python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-provider-audit/assets/examples/text/findings.json --pdf
 ```
 
 | Covers | Files |

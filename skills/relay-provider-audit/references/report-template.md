@@ -1,7 +1,7 @@
 # 对照报告：findings.json + 统一生成器
 
 > 所有接入测试报告都由 `scripts/build_report.py` 从 `findings.json` 生成，不要每个任务手写报告脚本（版式会反复出问题）。
-> 样例（虚构数据）：视频 `examples/video/findings.json`，文本 `examples/text/findings.json`（在仓库根目录，复制安装 skill 时不含）。
+> 样例（虚构数据，随 skill 一起安装）：视频 `assets/examples/video/findings.json`，文本 `assets/examples/text/findings.json`。照着填比读字段表快。
 
 ## 用法
 

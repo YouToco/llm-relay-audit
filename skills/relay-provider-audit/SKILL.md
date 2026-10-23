@@ -1,13 +1,21 @@
 ---
 name: relay-provider-audit
-description: 中转站 / 代理 / 分销商（relay、reseller、new-api / one-api / sub2api 站）接入检测规范，视频和文本（LLM）线路都适用：拿一家供应商和官方 API 逐项对比——完整请求响应、参数与报错、真伪（是不是真模型、有没有换模型或注入提示词、视频是不是官方原片）、成片规格 / token 口径、成本倍率、能不能接进自己的网关；所有原始请求落 jsonl，填 findings.json 用统一生成器出「外发证据版 PDF + 内部决策卡」。用户说「测这家中转 / 测这个令牌 / 测这个分组」「供应商接入测试」「和官方对比」「判断是不是官方渠道」「是不是掺了假模型」「订阅号池」「参数透传」「出一份供应商对照报告」时用。视频基准：阿里 wan3、MiniMax H3、Seedance；文本基准：Claude（含 Bedrock）、Grok、Kimi、GLM、DeepSeek、Gemini；中转形态：new-api 多分组 / 参数透传、sub2api 订阅号池（各在 references/）。
+description: >-
+  Audit a third-party AI API relay / reseller (new-api, one-api, sub2api) against the official API, for text (LLM) and video lines — real model or swapped, injected system prompt, original video (C2PA), params and errors, token accounting, cost ratio, gateway readiness; logs every request to JSONL and renders an evidence PDF plus an internal decision card. 中转站 / 代理接入检测：用户说「测这家中转 / 测这个令牌 / 测这个分组」「和官方对比」「是不是真模型 / 掺了假模型」「有没有注入提示词」「视频是不是原片」「订阅号池」「参数透传」「出供应商对照报告」时用。Baselines: Claude (incl. Bedrock), Grok, Gemini, Kimi, GLM, DeepSeek, Alibaba wan3, MiniMax H3, Seedance.
+license: MIT
+compatibility: Needs Python 3.10+ and network access to the relay and official APIs. PDF output needs Chrome or Chromium; video forensics need ffmpeg and uv (pulls Pillow, numpy, c2pa-python). Works in any agent that loads Agent Skills (Claude Code, Codex, Cursor, Gemini CLI…).
+metadata:
+  author: YouToco
+  version: "0.2.0"
+  repository: https://github.com/YouToco/llm-relay-audit
 ---
 
 # 中转供应商接入检测规范（视频 + 文本线路）
 
 目标：判断「这家卖的和官方一样吗、值不值得接」，给用户证据；**接不接由用户定**（例外：规则 16 一票否决的直接判不接）。
 流程：立项 → 免费探针 → 报价 → 付费最小矩阵 → 核验（成片 / 判真伪 / 逐字段对照）→ 填 `findings.json` → 生成器出两份报告 → 收尾。
-视频细则 `references/video-checks.md`，文本细则 `references/text-checks.md`，报告字段 `references/report-template.md`。
+视频细则 `references/video-checks.md`，文本细则 `references/text-checks.md`，报告字段 `references/report-template.md`，填好的样例 `assets/examples/`。
+本文件里的路径都相对本 skill 目录（`SKILL.md` 所在目录）；运行脚本时写全路径，任务产出放在用户自己的工作目录，不要写进 skill 目录。
 
 ## 规则（编号固定供引用，按阶段排）
 
@@ -62,6 +70,8 @@ description: 中转站 / 代理 / 分销商（relay、reseller、new-api / one-a
 | `probe_lib.py` | `call()` 带 jsonl 日志（key 打码）、`used()` 读已用额度、`vendor_log()` 读 new-api 系供应商日志、`poll_task()` 轮询 |
 | `analyze_videos.py` / `contact_sheet.py` / `c2pa_check.py` / `extract_comfy.py` | 成片规格与编码器 / 首中尾帧 / C2PA 凭证 / ComfyUI 工作流（用法见 `video-checks.md`） |
 | `html_to_pdf.sh` / `report_style.html` | Chrome 无头转 A4 PDF / 报告样式（生成器自动用） |
+
+`assets/examples/{text,video}/` 是虚构的完整样例（findings.json + 原始 jsonl），`--pdf` 跑一遍就能看到两份产出长什么样。
 
 ## 各厂商基准（references/）
 

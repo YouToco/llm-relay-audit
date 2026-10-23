@@ -8,9 +8,9 @@
     python3 -I build_report.py <findings.json> --check             # 只校验，不写文件
     python3 -I build_report.py --init video|text <findings.json>   # 写一份骨架（真伪证据按类型预填必查项）
 
-字段说明见 references/report-template.md；样例（虚构数据，在仓库根目录，复制安装 skill 时不含）：
-    examples/video/findings.json（视频）
-    examples/text/findings.json（文本）
+字段说明见 references/report-template.md；样例（虚构数据，路径相对 skill 目录）：
+    assets/examples/video/findings.json（视频）
+    assets/examples/text/findings.json（文本）
 
 文字里的小标记：`代码`、**加粗**、换行 = 换行；不收 HTML。表格单元格可以写 {"tag":"good|warn|bad","label":"一致","text":"…"}。
 校验会挡下：缺必填项、真伪证据缺必查项、外发版出现内部字段里的线路 / 供应商名、两份产出里出现像 key 的串。"""
