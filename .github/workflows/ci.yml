@@ -40,5 +40,5 @@ jobs:
 
       - name: No secrets committed
         run: |
-          uvx --from detect-secrets detect-secrets scan --all-files --exclude-files '\.pdf$|\.png$|c2pa_known_signers\.json$' > /tmp/ds.json
+          git ls-files -z | grep -zvE '\.(pdf|png)$|c2pa_known_signers\.json$' | xargs -0 uvx --from detect-secrets detect-secrets scan > /tmp/ds.json
           python -c "import json,sys;r=json.load(open('/tmp/ds.json'))['results'];[print(f,x['type'],x['line_number']) for f,v in r.items() for x in v];sys.exit(1 if r else 0)"
