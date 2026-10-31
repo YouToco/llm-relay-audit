@@ -6,7 +6,7 @@ license: MIT
 compatibility: Needs Python 3.10+ and network access to the relay and official APIs. PDF output needs Chrome or Chromium; video forensics need ffmpeg and uv (pulls Pillow, numpy, c2pa-python). Works in any agent that loads Agent Skills (Claude Code, Codex, Cursor, Gemini CLI…).
 metadata:
   author: YouToco
-  version: "0.3.0"
+  version: "0.3.1"
   repository: https://github.com/YouToco/llm-relay-audit
 ---
 
@@ -40,6 +40,7 @@ English: see `references/en/SKILL.en.md` (same procedure).
 - **规则 1 先报价后花钱**：写清每单多少、共几单、上限，等用户点头。**每个档位都实测，不线性外推；价目表标了的也要测**（见过标了 2K、先扣钱再回「只支持 768P 以下」退款；见过低档便宜、1080P 接近官方价，线性外推低估数倍）。没测过的档按最坏 8 倍估，从最便宜档逐档往上，看实扣再决定下一档。
 - **规则 7 Seedance 必测样片 draft**：卖 Seedance 2.5（当前在售系列里只有 2.5 支持样片；1.5 Pro 曾有 480p 样片模式）就在免费探针 + 付费矩阵都带样片，报价单列「样片 480p + 正式片 1080p」；没测成也写原因。清单见 `references/seedance.md`「样片 draft 必测清单」。
 - **规则 8 只测最新一代**：付费单先花在这家卖的最新版本上（文本测最新旗舰、生图 / 视频测最新版），免费探针确认更新的版本真不在、报告写明「没有 X」。旧版本只做免费探针，除非用户点名。
+  **Seedance 例外**：用户没指定模型时，供应商接口能列出的 Seedance 模型（2.5 / 2.0 / 2.0-fast / 2.0-mini…）**每个都付费测**（至少最低档 480p 4 秒一单，2.5 另加样片）——这几个模型通常都会被拿去卖，只测最新一个回答不了其余是不是官方原片、什么价。测试金不够就在报价时列清哪些模型测不了、要测全还差多少（按预扣额算，不只按单价），问用户充值还是先只测够钱的（新模型优先）。
 - **规则 13 原始请求响应全部落 jsonl**：免费、付费、官方对照的每个请求都经 `probe_lib.call()` / `call_stream()` 记进 `artifacts/*.jsonl`（key 打码），不用不落盘的 curl / 临时脚本；报告和附录只从 jsonl（或由 jsonl 生成的 artifacts 文件）引用，不手抄。
 
 **核验**

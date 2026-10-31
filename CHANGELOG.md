@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 — 2026-10-31
+- Rule 8 gets a Seedance exception: when no model is named, test every Seedance model the supplier lists (2.5 / 2.0 / fast / mini…), one cheapest-tier job each plus the 2.5 draft round; if the balance can't cover them all, list what won't fit and the shortfall (pre-deduction included) before starting, and ask whether to top up or test newest-first.
+
 ## 0.3.0 — 2026-10-24
 Fixes from a three-way review (new-user dry run, content, code).
 
