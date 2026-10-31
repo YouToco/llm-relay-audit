@@ -41,7 +41,7 @@ python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-prov
 
 | Covers | Files |
 |---|---|
-| Text baselines | Claude (first-party / Bedrock), OpenAI (incl. Azure / Bedrock-hosted), Grok, Gemini, Kimi, GLM, DeepSeek |
+| Text baselines | Claude (first-party / Bedrock), OpenAI (incl. Azure / Bedrock-hosted), Grok, Gemini, Kimi (incl. K3.1 Pro), GLM, DeepSeek, Qwen, MiniMax M3 |
 | Video baselines | Alibaba wan3, MiniMax H3, Seedance (Volcengine / BytePlus) |
 | Relay stacks | new-api / one-api (groups, ratios, logs, passthrough), sub2api (subscription pools) |
 | Beyond authenticity | output-token inflation, context truncation, output tampering, data retention, ToS / compliance risk |

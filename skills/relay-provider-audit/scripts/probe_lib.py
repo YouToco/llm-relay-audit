@@ -140,6 +140,17 @@ def _mask_resp_h(h):
     return out
 
 
+B64_URL = re.compile(r"data:([\w.+/-]+);base64,([^\s\"'<]{4096,})")  # 不限字符集：打码会把 base64 里像 key 的片段换成 ***
+def _shrink_b64(o):
+    """日志里的大段 base64（data: URL，视频 / 图片内嵌）换成「长度 + sha256」占位；发出去的请求不变（2026-10-26 一单视频 68MB 写进 jsonl）。"""
+    if isinstance(o, str):
+        import hashlib
+        return B64_URL.sub(lambda m: f"data:{m.group(1)};base64,<省略 {len(m.group(2))} 字符 sha256:{hashlib.sha256(m.group(2).encode()).hexdigest()[:12]}>", o)
+    if isinstance(o, dict): return {k: _shrink_b64(v) for k, v in o.items()}
+    if isinstance(o, list): return [_shrink_b64(v) for v in o]
+    return o
+
+
 def _mask_url(url):
     def sub(m):
         name = urllib.parse.unquote_plus(m.group(2))
@@ -280,8 +291,8 @@ class Client:
         _mask_url(url)  # 登记查询参数里的 key
         if body is None: data, blog = None, None
         elif isinstance(body, (bytes, bytearray)): data, blog = bytes(body), f"(二进制 {len(body)} 字节)"
-        elif isinstance(body, str): data, blog = body.encode("utf-8"), body
-        else: data, blog = json.dumps(body, ensure_ascii=False).encode("utf-8"), body
+        elif isinstance(body, str): data, blog = body.encode("utf-8"), _shrink_b64(body)
+        else: data, blog = json.dumps(body, ensure_ascii=False).encode("utf-8"), _shrink_b64(body)
         rec = {"label": "", "ts": "", "method": method, "url": self._disp(url, base),
                "req_headers": {k2: (_mask_hval(v) if SENS_REQ_H.search(k2) else v) for k2, v in h.items()}, "body": blog}
         return url, h, data, rec, base

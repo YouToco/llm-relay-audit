@@ -41,7 +41,7 @@ python3 -I $G -h                                          # 帮助
 | `summary` | 是 | 一句话判定，**客观、外发可用**（不写建议） |
 | `claims[]` | 是 | 供应商声称 vs 实测：`item` `claimed` `measured` `verdict`(good / warn / bad) `label` |
 | `verdicts[]` | 是 | 第 1 页结论卡 ≤ 4 张：`area` `verdict` `label` `text`（视频常用 成片 / 接口 / 成本 / 样片；文本 后端 / 模型 / 质量 / 成本） |
-| `asks[]` | 是 | 要对方修 / 答复的事：`item` `why`；没有写 `[]`。`gateway` 里 `vendor` 档的条目会自动并进来（标 `internal_only` 的不并） |
+| `asks[]` | 是 | 要对方修 / 答复的事：`item` `why`；没有写 `[]`。外发版「需要对方处理的事」**只列这里**，`gateway` 里 `vendor` 档的条目不会自动并进来（以前自动并，和这里写重）；`gateway` 有 `vendor` 项而 `asks` 为空时生成器会警告。每件事只写一条 |
 | `method` | 否 | 怎么测的：`kv` = [[标题, 内容]…]，`note` 写基准是什么、没做的项 |
 | `authenticity` | 是 | 真伪证据 `evidence[]`：`id` `check` `official` `supplier` `verdict` `label`。**必查 id**：视频 `c2pa` `encoder` `bucket`；文本 `id_prefix` `token_count` `model_swap` `injection`；没测在 `skipped` 写 `{id: 原因}`。可加别的行（如 `usage`、`stack`） |
 | `passthrough` | 视频必填 | 参数透传（规则 15）：`rows[]` = `id` `field` `official` `supplier` `status`（`same` 原样 / `renamed` 改名保留 / `lost` 丢失 / `rehosted` 链接指向供应商自己的存储——**按丢失算**（英文版标签 Rehosted；外发版默认引言会写「转存到自家存储算丢失」） / `fake` 非官方值）`note`；必查 id：`video_url` `task_id` `resolution` `duration` `usage`，可加别的行（`draft`、其余字段）。外发版单独一节，标「透传完整 / N 项没透传 / 全被封装」 |
@@ -50,13 +50,16 @@ python3 -I $G -h                                          # 帮助
 | `sections[]` | 否 | 自定义节（样片 draft、成片规格、画质、思考深度、传参、文档三列对照、非功能项…）：`title` `intro` `bars{title, items[{label,value,hot,text}]}`（`bars.title` 图标题；`value` 只能是数字或 null；`items[].text` 替代数值显示的文字）`table{head,rows,cols,num}`（`rows` 是行的列表）`image{path,caption,alt}`（png / jpg / jpeg / webp / gif / svg，文件必须存在；`alt` 图片替代文字）`bullets` `note` `keep` |
 | `cost` | 是 | `unit` `intro` `tiers[]` = `tier` `official` `supplier`（同单位数字或 null，文字放 `*_text`）`official_text` `supplier_text` `ratio`（= 供应商 ÷ 官方，写小数，0.8 = 官方价的 80%；不填时自动算，填了和两个数对不上会警告）`basis` `tested`（缺或 false 都会警告，规则 1）；`chart` false 关掉横条图 |
 | `gateway` | 是（`mode: external` 时可选） | `items[]` = `item` `tier`（`ready` 不改代码 / `gateway` 网关要改 / `vendor` 要对方补）`detail`；`note` 卡片脚注；只进内部卡 |
-| `exchanges[]` | 是（至少 1 条，每条要有 `title`） | 附录原文：`title` `note` `official` `supplier`；**官方一侧必填**（官方实测 jsonl > 官方文档示例 + `source:"文档示例"` > `{"note": 没有的原因}`），`source` 写在表头；左右 / 上下由生成器按宽度自动排；每侧 `{"jsonl","label","host"}` 或 `{"request": 文本或对象, "response": 文本 / 对象 / {"json","path"} / {"file","head","tail"}}`（SSE 原文按空行分块取头尾） |
+| `exchanges[]` | 是（至少 1 条，每条要有 `title`） | 附录原文：`title` `note` `official` `supplier`；**官方一侧必填**（官方实测 jsonl > 官方文档示例 + `source:"文档示例"` > `{"note": 没有的原因}`），`source` 写在表头；左右 / 上下由生成器按宽度自动排；每侧 `{"jsonl","label","host"}`（记录里的 url 开头若是任意 `{占位名}`——如 `{base}`、`{official}`、你给供应商起的代号——给了 `host` 就换成它，没给就原样显示）或 `{"request": 文本或对象, "response": 文本 / 对象 / {"json","path"} / {"file","head","tail"}}`（SSE 原文按空行分块取头尾） |
 | `internal` | 是（`mode: external` 时可选） | `decision`（主线 / 备用 / 先修后接 / 不接 / 待定；也收英文别名 `primary` / `backup` / `fix-first` / `reject` / `pending`）`reason` `this_line{cost,success_30d,volume_30d,note}`（本线路在对比表里的那一行；没接入时 `success_30d` 默认显示「未接入」）`existing_lines[]`（`line` `supplier` `cost` `success_30d` `volume_30d` `note`；真没有写 `[]` + `existing_note`）`ask_business[]` `risks[]` `next[]` `redact_terms[]` |
 
 `existing_lines` 填你自己现有的同模型线路（成本比例、30 天成功率与量），数据从你的网关 / 监控导出，在 `existing_note` 写快照日期。
 
 ## 写法（生成器管不到的，要自己守）
 
+- **供应商多出官方没有的档位**（分辨率、时长、模型）：写成「官方 X 没有 Y 档，对方另列」，并写明官方有哪些档；**不要写「Y 要开通」「Y 未开」**——读者会以为官方本来就有这档（见过：某供应商的视频接口列了官方没有的 1080p，报告写成「1080p 要开通」，被追问「官方支持 1080p？」）。
+- **画质对比必须同条件**：两边同一句原句、同帧数 / 时长（供应商能按帧就对齐官方）、关掉供应商的提示词扩写 / 增强（看回包里模型实际拿到的提示词确认）；尺寸探针那种 1 秒短片不能拿来比画质。见过一家供应商默认扩写提示词、把画面改成全景深，被误判成「锐化痕迹」，同条件重测后作废。
+- **每个测了的清晰度档位都要和官方同档比**，不能只比最低档；最高档（如 2K / 1080p）另加 100% 原尺寸裁切（主体 + 内容相近的背景各一块），竖屏 / 方形按原比例并排（按 16:9 格子拼会被裁掉）。锐度 / 码率指标只作参考：全景深和锐化也会把它们抬高。
 - **数字都有出处**：实扣用供应商日志，耗时用时间戳，规格用 ffmpeg；推断标明是推断（「成片同源」的依据是编码器和标签一致，不是直接证明）。
 - **完整请求与响应必须有**：生图 / 文本也要左官方右供应商并排、错误行为两边同一批输入实测；官方 key 没余额也要现测免费错误路径；成功响应拿不到实测就用官方文档字段并标「文档字段」。
 - **文本线路**加一张「文档 / 官方实测 / 供应商」三列逐字段表（放 `sections`），文档当天取、摘要存 `artifacts/official-docs-<日期>.json`（`text-checks.md`）。「一致」先程序求差集（规则 12）。
@@ -71,7 +74,8 @@ python3 -I $G -h                                          # 帮助
 - 也不许大片留白：打印走块流，大表在行间换页、卡片组在卡片行间换页，不整块挪；标题 + 引言粘住下一块的第一行，段尾 `note` 只粘上一块；图打印撑满正文宽、高随比例（高过一页才按页高缩）；表格换页时首末行各粘住相邻一行（不留孤行），引言段不拆；附录代码块可跨页（小标题粘住开头 4 行）。
 - 内部卡 PDF 必须一页：页边距 8mm，放不下生成器从 zoom 1 逐级缩到 0.6 取第一个一页的（写回 `internal-card.html`）；缩到底还两页就删 `internal` 条目。
 - 附录：key 打码、只留 `keep_headers` 里的响应头、base64 / 长文本 / 签名链接截断、紧凑 JSON（放得下一行的对象写一行）。
-- PDF 一律本机 Chrome 无头转（`html_to_pdf.sh <html> <pdf> [lang]`，第 3 个参数可选）；字体只用本机字体，不联网。
+- jsonl 里本来就没有大段 base64：`probe_lib` 落盘时把请求 / 响应里 4096 字符以上的 `data:…;base64,…` 换成「长度 + sha256 前 12 位」占位（发出去的请求不变），视频 / 图片内嵌请求不会把几十 MB 写进记录；要证明两边传的是同一份素材，比这个 sha256。
+- PDF 一律本机 Chrome 无头转（`html_to_pdf.sh <html> <pdf> [lang]`，第 3 个参数可选）；字体只用本机已装的，不联网：中文 macOS 走苹方、Windows 走微软雅黑、Linux 走 Noto CJK，等宽字体同理，所以不同机器字形和换页位置会略有差别，版式、配色、章节、表格一样。环境只要 python3 + Chrome / Chromium；换页拼图另要 `uv` 或 `pip install pymupdf pillow`，没有也能出 PDF。
 - 附录打码：请求头 `authorization` / `x-api-key` / `api-key` / `x-goog-api-key` / `cookie` / `set-cookie` / `proxy-authorization` / `x-auth-token` 一律写成 `***`；URL 参数 `key=` / `api_key=` / `apikey=` / `api-key=` / `access_token=` / `token=` 的值打码。
 
 ## 含 key 的版本

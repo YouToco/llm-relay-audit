@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0 — 2026-10-31
+Catch-up with a week of field use since 0.3.0.
+
+**Rules**
+- New rule 18: a supplier whose endpoints / fields / response structure aren't the model's official API format is rejected outright (or "fix first" if they agree to switch); flagged on the report's first line.
+- Rule 15: the Seedance asset library is mandatory and a gate — exercise every documented asset endpoint and generate with `asset://`; if the library is unsupported or not enabled, stop before any paid job.
+- Set-up step: for Seedance, find the asset-library and draft docs first; if either is missing, ask the user for them before probing.
+
+**Scripts**
+- `probe_lib`: large `data:` base64 in logged request bodies is replaced by length + sha256 (requests unchanged).
+- `build_report`: the external "what the supplier must fix" list uses only `asks` (gateway `vendor` items are no longer merged in; warns if they exist and `asks` is empty); appendix URLs with any leading `{placeholder}` get the exchange's `host`.
+- `c2pa_known_signers.json`: BytePlus Seedance 2.5 and 2.0-series certs, Google media signing (Gemini images) added.
+- 4 new tests (88 total).
+
+**References** (official measurements folded in, all relay cases anonymized)
+- Seedance: corrected official D1 error text (`DraftTaskNotFound` is a middle-layer imitation), overseas 480p size change, reference-media token formula and billing tiers, full task-object fields, more relay pitfalls.
+- New `qwen.md`, `minimax-text.md`; Kimi K3.1 Pro section; official measurement sections for Claude, OpenAI / Azure, Gemini, GLM-5.3, DeepSeek; official prices snapshotted 2026-10-29.
+- MiniMax H3 official specs (sizes, frame grid, tokens per second, encoder fingerprints) replacing relay-observed values; wan3 official error table and output sizes.
+- `text-checks.md`: long-input comparison (catch fixed-multiplier usage inflation), official rate-limit headers and latency references.
+- `video-checks.md`: compare every tested resolution with the official same tier, same-condition quality comparisons; `probing-tips.md`: free request-size limit probe, public test media.
+- `sub2api.md`: short-probe diversion (single-turn "OK / hi" routed to a fake backend), `speed: fast` can take a pool down; `new-api.md`: passthrough header fork, `/api/log/self`.
+
 ## 0.3.1 — 2026-10-31
 - Rule 8 gets a Seedance exception: when no model is named, test every Seedance model the supplier lists (2.5 / 2.0 / fast / mini…), one cheapest-tier job each plus the 2.5 draft round; if the balance can't cover them all, list what won't fit and the shortfall (pre-deduction included) before starting, and ask whether to top up or test newest-first.
 

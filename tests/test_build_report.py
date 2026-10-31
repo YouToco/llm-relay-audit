@@ -397,5 +397,27 @@ class Pdf(Case):
         self.assertEqual(br.pdf_pages(os.path.join(art, "ExampleRelay-内部决策卡.pdf")), 1)
 
 
+# ---------------- 0.4.0：外发版只列 asks、附录占位符 ----------------
+class AsksAndAppendix(Case):
+    def test_vendor_gateway_items_not_merged_into_asks(self):
+        F = load("video"); F["gateway"]["items"].append({"item": "GW_ONLY_ITEM_42", "tier": "vendor", "detail": "内部才看"})
+        rep, card, _ = self.build(F, "video")
+        self.assertNotIn("GW_ONLY_ITEM_42", body(rep)); self.assertIn("GW_ONLY_ITEM_42", body(card))
+        self.assertIn(F["asks"][0]["item"], body(rep))
+
+    def test_warn_when_vendor_items_but_no_asks(self):
+        F = load("video"); F["asks"] = []
+        r = self.assertPasses(F, "video"); self.assertIn("asks 是空的", r.stdout + r.stderr)
+
+    def test_any_leading_placeholder_replaced_by_host(self):
+        F = load("video"); F["exchanges"][0]["supplier"]["host"] = "https://relay.example.test"
+        p = self.task(F, "video"); jl = os.path.join(os.path.dirname(p), "artifacts", "paid.jsonl")
+        with open(jl, encoding="utf-8") as f: t = f.read()
+        with open(jl, "w", encoding="utf-8") as f: f.write(t.replace('"{base}/', '"{relay_a}/'))
+        r = self.run_br(p); self.assertEqual(r.returncode, 0, r.stderr)
+        rep = text(os.path.join(os.path.dirname(p), "artifacts", "report.html"))
+        self.assertIn("relay.example.test/v1/video/generations/relay_task_0001", rep); self.assertNotIn("{relay_a}", rep)
+
+
 if __name__ == "__main__":
     unittest.main()

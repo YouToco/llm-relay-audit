@@ -144,6 +144,13 @@ class TestMasking(Base):
         self.c.call("GET", "/echo", label="k")
         t = self.text(); self.assertNotIn(KEY, t); self.assertIn("Bearer ***", t)
 
+    def test_big_base64_shrunk_in_log_not_in_request(self):
+        blob = "QUJD" * 2000  # 8000 字符 base64
+        s, p, _ = self.c.call("POST", "/echo", body={"image": f"data:image/png;base64,{blob}"}, label="b64")
+        self.assertEqual(s, 200); self.assertIn(blob, p["body"])  # 发出去的是原文
+        r = self.recs()[0]; self.assertNotIn(blob, json.dumps(r["body"]))  # 只缩写记录的请求体（回显服务器把原文放回了响应）
+        self.assertRegex(r["body"]["image"], r"^data:image/png;base64,<省略 8000 字符 sha256:[0-9a-f]{12}>$")
+
     def test_empty_or_missing_K_rejected(self):
         os.environ["B"] = BASE; os.environ["K"] = ""; os.environ["LOG"] = self.log
         try:

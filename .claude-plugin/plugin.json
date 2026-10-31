@@ -1,6 +1,6 @@
 {
   "name": "llm-relay-audit",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Audit third-party AI API relays / resellers against the official API: authenticity (real model? swapped? injected prompts? original video?), params & errors, token accounting, cost ratio, and an evidence report generator.",
   "author": {
     "name": "YouToco",

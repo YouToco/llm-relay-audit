@@ -1,6 +1,6 @@
 # OpenAI（文本）线路基准：一方 API / Azure OpenAI / Bedrock 托管 / Codex 后端
 
-> Last verified: 2026-10-23（官方文档部分）；价格与行为以官方文档为准。标「实测观察」的是经中转看到、文档里没有的现象，只能当线索。
+> Last verified: 2026-10-23（官方文档部分）；官方 key 实测（OpenAI 直连 + Azure）2026-10-19 – 10-29；价目 2026-10-29。价格与行为以官方文档为准。标「实测观察」的是经中转看到、文档里没有的现象，只能当线索。
 > 通用判真伪见 `text-checks.md`；new-api 站点的日志 / 价目接口见 `new-api.md`；非功能项见 `nonfunctional-checks.md`。
 
 来源（2026-10-23 读；OpenAI 文档页在 URL 后加 `.md` 可取 Markdown 版）：
@@ -20,7 +20,7 @@ Bedrock：[AWS Responses API](https://docs.aws.amazon.com/bedrock/latest/usergui
   - 推理 token 计入 `output_tokens`、**按输出价计费**（Reasoning 指南）——和 xAI 口径相反（`grok-xai.md`）。
   - `max_output_tokens` 限的是「可见输出 + 推理」总数；到上限回 `status: "incomplete"` + `incomplete_details.reason: "max_output_tokens"`，可能一个可见字都没有却已经花了输入和推理的钱。`reason` 还可能是 `content_filter` 等。
 - **Chat Completions**：`POST /v1/chat/completions`。id `chatcmpl-…`，`object: "chat.completion"`，可选 `system_fingerprint`；`usage` = `prompt_tokens` / `completion_tokens` / `total_tokens` + `prompt_tokens_details.{cached_tokens, cache_write_tokens, audio_tokens}` + `completion_tokens_details.{reasoning_tokens, accepted_prediction_tokens, rejected_prediction_tokens, audio_tokens}`。
-- **`service_tier`**：回包写**实际使用的**处理档位，可能和请求值不同；请求 `fast` 或 `priority`，回包都显示 `priority`。项目不允许该档位时回 400「Invalid `service_tier` argument」（`param: service_tier`）。
+- **`service_tier`**：回包写**实际使用的**处理档位，可能和请求值不同；文档写请求 `fast` 或 `priority`，回包都显示 `priority`——**但官方 key 实测（2026-10-20）请求 `priority` 回的是 `fast`**（Priority 2026-07-30 改名 Fast mode），两种都可能是官方行为；合法值 auto / default / fast / flex / priority，`bogus` 400。项目不允许该档位时回 400「Invalid `service_tier` argument」（`param: service_tier`）。
 - **免费计数**：`POST /v1/responses/input_tokens`，请求体和 Responses 一样（文本、图片、文件、工具、会话都能算），回 `{"object":"response.input_tokens","input_tokens":N}`。指南说它返回模型实际收到的确切数（含角色 / 边界等格式 token）；**文档没写是否计费**——第一次用时看一眼官方账单确认（规则 2：拿不准当付费）。
 - **输出 token 有不可见部分**（Counting tokens 指南）：GPT-5 等型号会生成格式 / 通道分隔 token，不出现在正文和 `logprobs` 里，所以 `output_tokens` 可能比可见文字多，**即使 `reasoning_tokens` 是 0**，且差值随型号和响应形状变。→ 判「输出 token 虚报」不能拿可见文字重数，要和官方同请求的 usage 比（`nonfunctional-checks.md`）。
 - **响应头**（API overview）：`openai-organization`、`openai-processing-ms`、`openai-version`（当前 `2020-10-01`）、`x-request-id`；限流头 `x-ratelimit-{limit,remaining,reset}-{requests,tokens}`，有项目级 token 限额时再加 `x-ratelimit-{limit,remaining,reset}-project-tokens`。
@@ -28,9 +28,39 @@ Bedrock：[AWS Responses API](https://docs.aws.amazon.com/bedrock/latest/usergui
 - **错误外壳** `{"error":{"message","type","param","code"}}`。Error codes 页：401（认证无效 / key 错 / 不在组织 / IP 不在白名单）、403 地区不支持、429（限速；`credit_balance_exhausted`、`slow_down`、`organization_spend_limit_exceeded` 等用 `error.code` 区分，`error.type` 可能仍是 `insufficient_quota`）、500、503 `server_is_overloaded`；429 / 503 **有 `Retry-After` 时**按它等。
 - **id 格式别当硬证据**：API overview 把「改变资源 id 等不透明字符串的长度或格式」列为向后兼容的改动，OpenAI 随时可以换。
 
+## 官方实测（OpenAI 直连 + Azure 官方部署，2026-10-19 – 10-29）
+token 口径 10-29 原样重发计数逐条一致。限额数值随账号变，只当参照。
+- **免费计数 `/v1/responses/input_tokens`**：「Reply with the single word OK.」裸 **13**、带 `get_weather` 工具 **91**（gpt-5 起全系一样，含 gpt-6.x / 5.6 系）；gpt-4.1 / 4o 系 14 / 86；o3-2025-04-16 13 / 88。实际调用 gpt-6-luna：Responses 13 入 / 16 出（推理 9），chat 13 入 / 17 出（推理 7）。**Azure 不支持这个计数口**：5 个型号都 400「This model is not supported by Responses API.」（Responses 本身能用）。
+- **id**：Responses `resp_` + 50 位 hex（`rs_` / `msg_` 用同一前缀串）；chat `chatcmpl-` + 29 位字母数字；响应头 `x-request-id: req_` + 32 位 hex。
+- **Responses 回包**：顶层 37 个键，有 `access_programs`、`billing {payer: developer}`、`tool_usage`、`prompt_cache_retention: "24h"`、`reasoning {context, effort: medium, mode: standard}`、默认 `store: true`、`top_p 0.98`。流式事件顺序：`created → in_progress → output_item.added → content_part.added → output_text.delta → output_text.done → content_part.done → output_item.done → completed`。chat 回包只有 8 个顶层键（`system_fingerprint: null`、`service_tier: default`），usage 带 `cache_write_tokens`。
+- **响应头**：`openai-version: 2020-10-01`、`openai-processing-ms`、`x-ratelimit-*`、Cloudflare（`cf-ray`）；`openai-organization` / `openai-project` 是账号 id，存证前打码。`x-ratelimit-reset-*` 是 Go duration 字符串（如 `1h39m53s`）。
+- **报错原文**：temperature 9 → 400 `decimal_above_max_value`（Responses「<= 2.0」、chat「<= 2」）；top_logprobs 99 →「<= 20」；chat 推理型号传 `max_tokens` → 400 `unsupported_parameter`「Use 'max_completion_tokens' instead」；假模型文本 **404** `model_not_found`、假模型生图 **400** `invalid_value` / `image_generation_user_error`；未知字段 400「Unknown parameter」；http 图片 URL 400「Error while downloading file」；不存在的 previous_response_id 400 `previous_response_not_found`；无 key 401「Missing bearer or basic authentication」、错 key 401 `invalid_api_key`。余额为 0 时连非法参数都先被 429 `insufficient_quota` / `credit_balance_exhausted` 挡住（拿不到参数校验文案）。
+- **图片输入**（Azure，1920×1088 PNG，Responses `input_image`）：gpt-6-sol / gpt-5.6-luna 默认 detail **2,462** 入、`detail: low` **206** 入；URL 和 base64 计数一样，**同一张图第二次换 base64 发直接命中缓存**（`cached_tokens: 2459`）——缓存按图片内容算，不看传法。
+- **缓存**（Azure）：约 5,500 token 的 `instructions` 前缀 + `prompt_cache_key`，第一单 `cache_write_tokens: 5535`，第二单 `cached_tokens: 5535`（全量命中）。
+- **生图**：`response_format: url` OpenAI 和 Azure **都 400 `unknown_parameter`**——GPT 生图只回 b64，中转回 url = 自己转存。生图报错：空提示词 400 `empty_string`；缺 prompt `missing_required_parameter`；edits 不带图「Missing required parameter: 'images'」；quality 合法值 low / medium / high / auto；background transparent / opaque / auto；`output_format: gif`「GIF output is not enabled for this organization」。输出 token 档位（输入 25）：gpt-image-2.5-flare / sunburst 1024² medium **439**、high **1756**、1536×1024 medium 343、2048² medium 892；**gpt-image-2 1024² medium = 1756**（是 2.5 的 4 倍）。
+- **生图 C2PA 签发者**：OpenAI 原图 = OpenAI OpCo, LLC / CN OpenAI Media Service，中间 CA SSL.com C2PA ICA R1 2025，claim generator「OpenAI Media Service API」，动作 created → converted → watermarked，签名有效、哈希匹配，PNG 单个 IDAT；Azure 原图 = Microsoft Corporation，中间 CA Microsoft SCD Claimants RSA CA，动作 Azure OpenAI ImageGen → Microsoft watermarked，c2pa 库报 `claim.malformed` + `signingCredential.invalid` 是 Azure 常态（按中间链比，叶证书按节点不同），PNG 21 个 64KB IDAT。PNG 分块数也能帮着分 OpenAI / Azure。
+- 首字参照（国内经代理，Azure gpt-6-sol Responses 流式 ×10）：p50 2.2 s、p90 2.5 s。
+
 ## 价目
 
-- 只认 [官方价目页](https://developers.openai.com/api/docs/pricing)，**以官方页为准、按当天读并记日期**；本文不抄价。2026-10-23 的页面按短 / 长上下文分档，另列缓存命中、缓存写入价，按处理档位分表——中转报价要落到具体型号 × 档位 × 上下文长度再比。
+- 只认 [官方价目页](https://developers.openai.com/api/docs/pricing)，**以官方页为准、按当天读并记日期**。**别信搜索引擎 / 抓取服务的缓存页**：同一天抓到的缓存页 gpt-5.6-sol 还是旧价 $5 / $30，实时页是促销价 $4 / $20（表格要点「All models」，长上下文切「Long: >272K」）。
+- 2026-10-29 页面快照（USD / 百万 token，Standard；对账前重读）：
+
+| 模型 | 输入 | 缓存 | 30 分钟写 | 12 小时写 | 输出 | > 272K：输入 / 缓存 / 输出 |
+|---|---|---|---|---|---|---|
+| gpt-6-astra | 10 | 1 | 12.50 | 25 | 50 | 20 / 2 / 75 |
+| gpt-6.1-sol | 2 | 0.10 | 2.50 | 5 | 10 | 4 / 0.20 / 15 |
+| gpt-6.1-terra | 1 | 0.05 | 1.25 | 2.50 | 5 | 2 / 0.10 / 7.50 |
+| gpt-6-sol | 2 | 0.20 | 2.50 | 5 | 10 | 4 / 0.40 / 15 |
+| gpt-6-luna | 0.10 | 0.01 | 0.125 | 0.25 | 0.50 | 0.20 / 0.02 / 0.75 |
+| gpt-5.6-sol（促销价，页注「至少到 2026-11-21」） | 4 | 0.40 | 5 | 10 | 20 | 8 / 0.80 / 30 |
+| gpt-5.6-terra | 2 | 0.20 | 2.50 | 5 | 12 | 4 / 0.40 / 18 |
+| gpt-5.6-luna | 0.20 | 0.02 | 0.25 | 0.50 | 1.20 | 0.40 / 0.04 / 1.80 |
+| gpt-5.5 | 5 | 0.50 | — | — | 30 | 10 / 1 / 45 |
+| gpt-5.4 | 2.50 | 0.25 | — | — | 15 | 5 / 0.50 / 22.50 |
+
+  生图按 token（每百万）：gpt-image-2.5-sunburst / 2.5-flare / gpt-image-2 图片输入 8 / 缓存 2 / 图片输出 30、文本输入 5；页面不给每张价。2026-03-05 及以后发布的模型走数据驻留端点加 10%。
+- Azure OpenAI（[azure.microsoft.com 价目页](https://azure.microsoft.com/en-us/pricing/details/azure-openai/)，2026-10-29，Global；Data Zone 一律 +10%）：gpt-6.x / 5.6 系与 OpenAI 同价，生图三型号同价。2026-10-23 的页面按短 / 长上下文分档，另列缓存命中、缓存写入价，按处理档位分表——中转报价要落到具体型号 × 档位 × 上下文长度再比。
 - 推理 token 按输出价；缓存命中看 `cached_tokens`，写入看 `cache_write_tokens`。[Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)（GPT-5.6 及以后）：写入默认 30 分钟 = 输入价 ×1.25，Responses 可选 12 小时 ×2.5；命中多数型号 ×0.1（个别 ×0.05）；最小可缓存 1,024 token。
 - Bedrock 托管：OpenAI 指南写商业区价格**与 OpenAI 直连同类服务一致**，用 Bedrock 的单地域服务按 OpenAI API 的 Regional processing 价算（具体数以 AWS / OpenAI 价目页为准）。
 
@@ -41,7 +71,8 @@ Bedrock：[AWS Responses API](https://docs.aws.amazon.com/bedrock/latest/usergui
 - **内容筛选字段**（Azure 独有，OpenAI 一方没有）：回包顶层 `prompt_filter_results[]`（每项 `prompt_index` + `content_filter_results`），`choices[].content_filter_results`；类别 `hate` / `sexual` / `violence` / `self_harm`（`filtered` + `severity`）、`jailbreak`（`detected` + `filtered`）、`protected_material_text` / `protected_material_code`（`detected` + `filtered`，code 带 `citation`）、`profanity` 等。提示词被拦 → 400，`error.code: "content_filter"`，详情在 `error.innererror.content_filter_results`；输出被拦 → `finish_reason: "content_filter"`。
   - 判后端：回包带这些字段 = Azure（或中转没剥干净）；卖「OpenAI 官方」却有它们 = 背后是 Azure。中转把它们剥掉也常见，没有不能证明不是 Azure。
   - Azure 的筛选比 OpenAI 一方严、且按部署可配：同一提示词 Azure 拒、OpenAI 不拒不算中转的毛病（`text-checks.md`「背后是云平台」）。
-- **响应头**（实测观察，未见文档列明）：`apim-request-id`、`x-ms-region`、`azureai-fe-offer-type: paygo`、`x-ratelimit-remaining-tokens`（剩余 TPM 很小 = 容量紧，推断）。new-api 系通常把上游头剥光，要看 body。
+- **响应头**（实测，未见文档列明）：`apim-request-id`、`x-ms-region`、`x-ms-served-model`（带日期的实际版本，如 `gpt-6-sol-2026-09-22`）、`x-ms-deployment-name`、`x-ms-rai-invoked`、`x-ms-is-spilled-over`、`azureai-fe-offer-type: paygo`、`server: istio-envoy`、`x-ratelimit-*`（每个部署一套，`renewalperiod` 60 秒；**Azure 按预估含输出上限先占 TPM**，一个小请求后 `remaining-tokens` 就大降，剩余 TPM 很小不一定是容量紧）。new-api 系通常把上游头剥光，要看 body。
+- **Azure 官方实测指纹**（2026-10-28，5 个型号一样）：Responses 也是 37 个顶层键，但**有 `content_filters`、没有 `billing`**，`reasoning.context: all_turns`；chat 有 `prompt_filter_results`、每个 choice 带 `content_filter_results`（含 `protected_material_*`）和 `routing`；**chat 的 `model` 回带日期的版本名（`gpt-6-sol-2026-09-22`），Responses 回部署名（`gpt-6-sol`）**。「OK」Responses 13 入、chat 13 入；强制工具（`tool_choice: required`）90 入 / 23 出。
 - **body 特征**（实测观察，未见文档）：`usage.latency_checkpoint`（engine / service ttft、pre_inference）、流式 `obfuscation` 字段、`system_fingerprint`。
 
 ## Bedrock 托管的 OpenAI

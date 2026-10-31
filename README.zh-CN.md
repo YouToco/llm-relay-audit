@@ -41,7 +41,7 @@ python3 -I skills/relay-provider-audit/scripts/build_report.py skills/relay-prov
 
 | 覆盖 | 内容 |
 |---|---|
-| 文本基准 | Claude（一方 / Bedrock）、OpenAI（含 Azure / Bedrock 托管）、Grok、Gemini、Kimi、GLM、DeepSeek |
+| 文本基准 | Claude（一方 / Bedrock）、OpenAI（含 Azure / Bedrock 托管）、Grok、Gemini、Kimi（含 K3.1 Pro）、GLM、DeepSeek、Qwen、MiniMax M3 |
 | 视频基准 | 阿里 wan3、MiniMax H3、Seedance（火山方舟 / BytePlus） |
 | 中转形态 | new-api / one-api（分组、倍率、日志、参数透传）、sub2api（订阅号池） |
 | 真伪之外 | 输出 token 虚报、上下文被截、输出被改、中转留存提示词、条款 / 合规风险 |

@@ -1,4 +1,10 @@
 [
  {"vendor": "Volcengine Ark (火山方舟国内) Seedance", "issuer": "北京火山引擎科技有限公司", "sha256": "635451f517fe5d0ad539d44bc0b7306d5f978bcd1eece031f8d6a193461fed68",
-  "source": "official Ark API outputs (Seedance 2.0-mini 2026-10-08, 2.5 2026-10-21); chain GlobalSign GCC R45 SMIME CA 2025 → GlobalSign Secure Mail Root R45; valid 2026-04-20 – 2028-04-20", "verified": "2026-10-21"}
+  "source": "official Ark API outputs (Seedance 2.0-mini 2026-10-08, 2.5 2026-10-21); chain GlobalSign GCC R45 SMIME CA 2025 → GlobalSign Secure Mail Root R45; valid 2026-04-20 – 2028-04-20", "verified": "2026-10-21"},
+ {"vendor": "BytePlus ModelArk (方舟海外) Seedance 2.5", "issuer": "Byteplus Pte. Ltd.", "sha256": "9d4096084640276cbef33572490778ad25dd932c56712699297e5e9f7c5786dd",
+  "source": "official BytePlus ModelArk outputs (ark.ap-southeast.bytepluses.com; dreamina-seedance-2-5 480p / draft / 1080p, 2026-10-28); chain GlobalSign GCC R45 SMIME CA 2025 → GlobalSign Secure Mail Root R45; valid 2026-08-03 – 2028-08-03", "verified": "2026-10-28"},
+ {"vendor": "BytePlus ModelArk (方舟海外) Seedance 2.0 系列", "issuer": "Byteplus Pte. Ltd. (CN=certificate@byteplus.com)", "sha256": "ce648397d59235fe1ba8159f72ae3c32352d6bdb2f47f696691e1428450680f9",
+  "source": "official BytePlus ModelArk output (ark.ap-southeast.bytepluses.com; dreamina-seedance-2-0-mini 480p, 2026-10-28; 2.0 / fast seen with the same cert); chain GlobalSign GCC R45 SMIME CA 2025 → GlobalSign Secure Mail Root R45; valid 2026-03-16 – 2028-03-16", "verified": "2026-10-28"},
+ {"vendor": "Google (Gemini 生图，Vertex AI 官方出图) — Google 通用媒体签名服务", "issuer": "Google LLC (CN=Google Media Processing Services, OU=Google System 10274)", "sha256": "4633c920b6fbc9d9b8adade931b8dcdd259ed4157375e7f802e848993a6a99f9",
+  "source": "official Vertex AI outputs (gemini-nano-banana-2.1 / gemini-3-pro-image / gemini-3.1-flash-image, 2026-10-28); claim generator 'Google C2PA Core Generator Library', actions created + edited; chain Google C2PA Media Services 1P ICA G3; valid 2026-03-03 – 2027-02-26. Google-wide signing service: proves a Google original, not which Google channel (Vertex vs AI Studio)", "verified": "2026-10-28"}
 ]

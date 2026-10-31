@@ -276,7 +276,9 @@ def side_text(ctx, s, keep_h):
     if "jsonl" in s:
         r = ctx.record(s); host = s.get("host", "{base}")
         hd = "\n".join(f"{k}: {mask_auth(v) if k.lower() in AUTH_HEADERS else v}" for k, v in (r.get("req_headers") or {}).items() if k.lower() != "user-agent")
-        req = f'{r.get("method", "")} {mask_url(str(r.get("url", "")).replace("{base}", str(host)))}\n{hd}'
+        url = str(r.get("url", ""))  # 各任务占位名不同（{base} / {anthropic} / {供应商代号}…）：开头的 {xxx} 有 host 就换成 host
+        url = re.sub(r"^\{[A-Za-z0-9_-]+\}", lambda m: str(s["host"]), url) if "host" in s else url
+        req = f'{r.get("method", "")} {mask_url(url)}\n{hd}'
         if r.get("body") is not None: req += "\n\n" + jdump(slim(r["body"]))
         h = {k: (mask_auth(v) if k.lower() in AUTH_HEADERS else v) for k, v in (r.get("resp_headers") or {}).items() if k.lower() in keep_h}
         rs = r.get("resp"); resp = "".join(f"{k}: {v}\n" for k, v in h.items()) + f'HTTP {r.get("status")}\n' + (jdump(slim(rs)) if not isinstance(rs, str) else rs[:1500])
@@ -423,6 +425,8 @@ def validate(F, ctx=None, external_only=False):
             need(g, ["item"], f"gateway.items[{i}]")
             if hv(g.get("tier")) not in GW_TAG: err.append(f"gateway.items[{i}].tier 只能是 ready / gateway / vendor")
         if gw.get("tier") is not None and hv(gw["tier"]) not in GW_TAG: err.append("gateway.tier 只能是 ready / gateway / vendor（或不写，取 items 里最高的）")
+        if not F.get("asks") and any(hv(g.get("tier")) == "vendor" for _, g in objs(gw.get("items"), "gateway.items", req=False)):
+            warn.append("gateway 有「要对方补」的项但 asks 是空的：要对方修的事写进 asks（外发版只列 asks）")
     for i, d in objs(F.get("diffs"), "diffs", req=False):
         need(d, ["item", "official", "supplier", "impact"], f"diffs[{i}]")
         if hv(d.get("impact")) not in IMPACT_TAG: err.append(f"diffs[{i}].impact 只能是 customer / integration / none")
@@ -580,8 +584,7 @@ def external(ctx):
     claims = tbl([t("item"), t("claimed", sup=sup), t("measured")],
                  [[first(c["verdict"], c["label"], c["item"]), md(c["claimed"]), md(c["measured"])] for c in F["claims"]], cols=[22, 32, 46])
     parts = [head, page1, f"<section>{h2(t('claims'))}{claims}</section>"]
-    gw_items = (F.get("gateway") or {}).get("items") or []
-    asks = list(F.get("asks") or []) + [{"item": g["item"], "why": g.get("detail", "")} for g in gw_items if g["tier"] == "vendor" and not g.get("internal_only")]
+    asks = list(F.get("asks") or [])  # 只用 asks：以前自动并进 gateway 的 vendor 项，和 asks 写重了（2026-10-29 起）
     if asks:
         li = "".join(f'<li><b>{md(a["item"])}</b>{(c_ + md(a["why"])) if a.get("why") else ""}</li>' for a in asks)
         parts.append(f'<section>{h2(t("asks", sup=sup))}<ol class="asks">{li}</ol></section>')

@@ -1,6 +1,6 @@
 # 订阅号池 / 订阅转 API 的识别（sub2api 等）
 
-> Last verified: 2026-10-22；sub2api 等订阅转 API 实现版本间差异大，以实测为准。
+> Last verified: 2026-10-29；sub2api 等订阅转 API 实现版本间差异大，以实测为准。
 > 背景：订阅转 API 站把消费者订阅号（Claude Pro / Max 等，OAuth 登录）做成号池对外卖 API。通用判真伪见 `text-checks.md`，Claude 基准见 `claude.md`，new-api 系见 `new-api.md`。
 
 ## 认出 sub2api
@@ -17,6 +17,9 @@
    - **中转把 `inference_geo` 丢了（回 200 + `global`）时改看响应头**：订阅号回 `anthropic-ratelimit-unified-5h/7d-{utilization,status,reset}`、`representative-claim`、`overage-status`，没有 API 账户的 `anthropic-ratelimit-{requests,tokens}-*`；多次请求数 `anthropic-organization-id` 出现几个不同值 ≈ 号池大小（推断）。
 
 ## 其他坑
+- **短句分流**（2026-10-29 实测，某订阅转 API 站按分组配置）：单轮的「Reply with the single word OK.」「hi」「hello」「ping」「test」「你好」这类探针短句被转到另一个后端——回 Claude Code 人设口吻、`output_tokens` 由站点自己生成（回 `ok` 恒为 1，官方同句 4），`input_tokens` 却 = 官方计数、非法参数照样 200，照常计费；带历史的多轮请求不受影响。只用这类短句测，注入和 token 都会「看着正常」。
+  - **判法**：同一时段真 Anthropic 回包的 `msg_011C…` / `req_011C…` id 前缀随时间递增（几分钟内前缀基本相同），被分流的单前缀随机、耗时多约 1 秒；探针别只用这类短句，混一句「17*23」「Say 'test'」对照，`output_tokens` 也和官方同句比，再发一次带一轮历史的同句。前几单可能还是真的，要多发几轮。
+  - 同站多个分组对照：sub2api 可以用同一把 key 改分组（`PUT /api/v1/keys/:id` 改 `group_id`），不用每组新建 key。
 - Cloudflare 拦 `Python-urllib` UA（403 纯文本「error code: 1010」），脚本设 UA；其他 SDK / curl / 空 UA 放行（见 `probing-tips.md`）。
 - 带工具或 system 块时 sub2api 自动加 `cache_control`：首次按 1.25× 缓存写入计费，后续命中便宜；对账要把缓存写入算进去。
 - 号池没号报 503「No available accounts」（前面常先一个 429「Upstream rate limit exceeded」）= 订阅号被限流 / 封，按规则 9 复测 3 遍再定性。
@@ -24,6 +27,8 @@
 - 不存在的模型回 Cloudflare 纯文本「error code: 502」，不是 JSON；自己生成的错误都没有 `request_id`；401 外壳是 `{"code":"INVALID_API_KEY","message"}`；`request-id` / organization / workspace / ratelimit 头被剥光（个别实现会透传，见上面的头判法）。
 - **回包多出 `input_transformations` / `context_management`**：`context_management` 按官方文档只在带 `context-management-2025-06-27` beta 头时出现；`input_transformations` 实测只在带 `thinking-binding-controls-2026-08-01` beta 头时出现（**实测观察，未见文档**）。客户没传这些头却出现 = 中转往上游发了自己的 beta 头（客户传的 beta 被换掉；推断）。拿回包顶层字段对文档、程序求差集就能看出（`text-checks.md`）。
 - 免费探针里的「不存在的模型」会让正在跑的号对该模型记 30 分钟限流（`upstream_404_model_not_found`），无害但要知道。
+- **别在订阅号池上发 `speed: fast`**（2026-10-27 实测）：上游回 429「Upstream rate limit exceeded」，sub2api 把号标成限流，随后**所有型号**都 503「No available accounts」约 2.5 分钟——会连带对方的线上用户。矩阵脚本留一个开关（如 `NOFAST=1`）跳过 fast；报告写「一单 fast 打挂全池」即可，不要故意复现。
+- **测试 key 可能和别人共用**：`/v1/usage` 是 key 级的，复测时可能多出别人的请求；花费按自己发的请求核算（看 `model_stats` 增量对自己的请求记录），别直接拿前后差。钱包余额是用户级的，也会被同一用户的其他 key 消耗。
 
 ## 有管理员后台时（规则 11：只读，不代输密码）
 - 由用户本人在浏览器登录；agent 只在用户的已登录会话里发**只读 GET**（让页面自己带会话凭证，agent 不去读、不复制、不打印、不记录任何令牌）：

@@ -1,12 +1,12 @@
 ---
 name: relay-provider-audit
 description: >-
-  Audit a third-party AI API relay / reseller (new-api, one-api, sub2api) against the official API, for text (LLM) and video lines — real model or swapped, injected system prompt, original video (C2PA), params and errors, token accounting, cost ratio, gateway readiness; logs every request to JSONL and renders an evidence PDF plus an internal decision card. 中转站 / 代理接入检测：用户说「测这家中转 / 测这个令牌 / 测这个分组」「和官方对比」「是不是真模型 / 掺了假模型」「有没有注入提示词」「视频是不是原片」「订阅号池」「参数透传」「出供应商对照报告」时用。Baselines: Claude (incl. Bedrock), OpenAI (incl. Azure OpenAI), Grok, Gemini, Kimi, GLM, DeepSeek, Alibaba wan3, MiniMax H3, Seedance.
+  Audit a third-party AI API relay / reseller (new-api, one-api, sub2api) against the official API, for text (LLM) and video lines — real model or swapped, injected system prompt, original video (C2PA), params and errors, token accounting, cost ratio, gateway readiness; logs every request to JSONL and renders an evidence PDF plus an internal decision card. 中转站 / 代理接入检测：用户说「测这家中转 / 测这个令牌 / 测这个分组」「和官方对比」「是不是真模型 / 掺了假模型」「有没有注入提示词」「视频是不是原片」「订阅号池」「参数透传」「出供应商对照报告」时用。Baselines: Claude (incl. Bedrock), OpenAI (incl. Azure OpenAI), Grok, Gemini, Kimi, GLM, DeepSeek, Qwen, MiniMax M3, Alibaba wan3, MiniMax H3, Seedance.
 license: MIT
 compatibility: Needs Python 3.10+ and network access to the relay and official APIs. PDF output needs Chrome or Chromium; video forensics need ffmpeg and uv (pulls Pillow, numpy, c2pa-python). Works in any agent that loads Agent Skills (Claude Code, Codex, Cursor, Gemini CLI…).
 metadata:
   author: YouToco
-  version: "0.3.1"
+  version: "0.4.0"
   repository: https://github.com/YouToco/llm-relay-audit
 ---
 
@@ -15,14 +15,14 @@ metadata:
 English: see `references/en/SKILL.en.md` (same procedure).
 
 **术语**：**供应商** = 被测的中转 / 代理；**官方** = 模型厂商（或托管它的云平台）自己的 API；**用户** = 让你测的人，也是**决策人**（接不接由用户定）。
-目标：判断「这家卖的和官方一样吗、值不值得接」，给用户证据；**接不接由用户定**（例外：规则 16 一票否决的直接判不接）。
+目标：判断「这家卖的和官方一样吗、值不值得接」，给用户证据；**接不接由用户定**（例外：规则 16 Seedance 一票否决、规则 18 不是官方 API 格式的，直接判不接）。
 流程：立项 → 免费探针 → 报价 → 付费最小矩阵 → 核验（成片 / 判真伪 / 非功能项 / 逐字段对照）→ 填 `findings.json` → 生成器出两份报告 → 收尾。
 视频细则 `references/video-checks.md`，文本细则 `references/text-checks.md`，非功能项 `references/nonfunctional-checks.md`，报告字段 `references/report-template.md`，填好的样例 `assets/examples/`。
 **放哪里**：本文件里的路径都相对本 skill 目录（`SKILL.md` 所在目录），运行脚本时写全路径。任务产出（jsonl、findings.json、报告）放在**用户自己的工作目录**；新测到的官方事实写回**用户自己的笔记**（如 `audits/references-local/<厂商>.md`），**不要写进已安装的 skill 目录**（更新会覆盖）——除非用户就是在开发本 skill。
 
 ## 规则（编号固定供引用，按阶段排）
 
-索引：1 先报价 · 2 官方基准 · 3 报告拆两份 · 4 key 不入库 · 5 只让被测项非法 · 6 结论后置 · 7 Seedance 测样片 · 8 只测最新一代 · 9 503 / 429 复测 · 10 基准现测 · 11 后台只读 · 12 一致要程序比 · 13 全落 jsonl · 14 官方放旁边 · 15 视频三件事 · 16 Seedance 否决 · 17 越权即停
+索引：1 先报价 · 2 官方基准 · 3 报告拆两份 · 4 key 不入库 · 5 只让被测项非法 · 6 结论后置 · 7 Seedance 测样片 · 8 只测最新一代 · 9 503 / 429 复测 · 10 基准现测 · 11 后台只读 · 12 一致要程序比 · 13 全落 jsonl · 14 官方放旁边 · 15 视频三件事 · 16 Seedance 否决 · 17 越权即停 · 18 非官方格式不接
 
 **立项**
 - **规则 2 官方基准**：只用官方文档 + 已有的官方实测记录；要新花官方 key 的钱先问用户。官方 key 若还用于其他业务，只小并发、不写进任何报告。
@@ -46,11 +46,13 @@ English: see `references/en/SKILL.en.md` (same procedure).
 **核验**
 - **规则 12「一致」要程序比出来**：写「字段完全一致 / body 结构一样」前，先把两边 key 集合（顶层、usage、响应头、SSE 事件名）程序求差集——凭眼看很容易漏掉供应商多出来的 `input_transformations` / `context_management` 之类字段。
 - **规则 15 视频线路必查三件事**：① 成片是不是官方原片（C2PA 签发者指纹 / 编码器 / 桶）；② 支不支持样片 draft（规则 7）；③ 返回的链接和参数是官方的还是包装过的——官方成片链接、任务号、清晰度、时长、用量**值还在、只是换了字段名可以接受**，**全被封装（换成自己的链接 / 句柄、没有这些字段）就没法按官方接入**。③ 填 findings 的 `passthrough`（生成器必查 5 个核心字段，全丢时内部卡不许写主线 / 备用）。
+  Seedance 另加**素材库必测**：文档里的素材接口逐个测（建组 / 登记图片 / 视频 / 音频 / 查询 / 列表 / 删除，文档有就测），并**真引用 `asset://` 出片**（图片素材至少一单），不能只看建素材回 ready。**素材库是门槛**：素材接口免费，放在免费探针最前面测；不支持或账号没开通就停测，付费单（样片、各模型出片）都不跑，报告写「素材库不可用，未继续测」并问对方能否开通。不支持的项也逐项写明（支持 / 不支持（原文）/ 文档没写（已问用户））。
 - **规则 16 Seedance 一票否决：拿不到官方原链接或不是原片，就接不了**。两条都要过：
   - ① 链接：返回的成片链接是**火山方舟 / BytePlus 官方桶的原始直链**（桶名逐字比，见 `seedance.md`；换了字段名可以，转存到自己的桶 / 点播 / CDN 不行，`passthrough` 记 `rehosted`、按丢失算）。
   - ② 原片：`c2pa_check.py` 判「官方原片（指纹匹配）」（C2PA 有效、哈希匹配且签名证书指纹在已知官方清单 `scripts/c2pa_known_signers.json`）；清单里还没有这家的指纹时，拿同一次审计里官方直连出的原片取指纹对照。只有「签名有效」不够：自签证书可以自称任何公司。
   - 任一不过 → `internal.decision` 写「不接」（生成器强制；`meta.rule16: true` 可强制启用这道闸），也**不再加测**：第一单出片就查这两条，不过就停。只有这两条过了，规则 15 ②③ 和价格才有意义。
   - 这是偏严的默认策略；你的业务能接受转存，就改生成器里这段校验。
+- **规则 18 不是官方 API 格式就不接**：所卖模型的提交 / 查询 / 取结果接口、字段名、返回结构不是该模型官方 API 的格式（自家协议、另写一套入参），**直接判不接**，不比价、不算网关改造量。对方愿意改成官方格式的，`internal.decision` 写「先修后接」、改完按官方基准重测。外发报告第一行显著标出「不支持官方 API 格式」。只换了字段名、值都在的不算（见规则 15 ③）。
 - **规则 6 结论后置于证据**；推断标明是推断，没文档出处的观察标「实测观察」。
 
 **报告**
@@ -63,6 +65,7 @@ English: see `references/en/SKILL.en.md` (same procedure).
 ## 流程
 
 0. **立项**：在用户的工作目录建任务目录（如 `audits/<YYYY-MM-DD>-<供应商>-<模型>/`，里面 `artifacts/` 放 jsonl 和产出）；key / 地址放环境变量；读 `references/<厂商>.md`，再读用户笔记里的 `audits/references-local/<厂商>.md`（有就以较新的为准）。
+   **测 Seedance 先读文档、找两份**：读供应商网站 / 文档站时专门找**素材库**和**样片 draft** 的接口文档（导航、搜索 `asset` / `素材` / `draft` / `样片`；文档站常是前端渲染，读不到正文就找它取文档的 JSON 接口）。**任一份没找到 → 先停，问用户有没有这两份文档**（可能在对接群、另一个文档站或没公开），拿到后再跑免费探针和后续所有测试；用户确认对方确实没有，才按「不支持」写，不要自己猜接口路径下结论。
 1. **免费探针**（0 元，全用 `scripts/probe_lib.py` 记 jsonl）：官方原生路径在不在（回网页 HTML = 没实现官方协议）；身份与版本（响应头）、`/v1/models`、价目、提交 / 查询路由、鉴权、错误矩阵（非法参数 / 缺头 / 错 key / 不存在的模型 / 不存在的任务）。
    必看 `references/probing-tips.md`：先确认没被 CDN 按 UA 拦（1010）、原因被抹掉就读供应商日志、**`billing/usage` 不可信，实扣只看日志**、每档确认实际落的计价档位。
 2. **报价 → 付费最小矩阵**（规则 1 / 7 / 8）：视频按 `video-checks.md`；文本按厂商 reference 的检测矩阵，判真伪的请求要和官方逐个可比。
@@ -70,6 +73,7 @@ English: see `references/en/SKILL.en.md` (same procedure).
 4. **逐字段对照官方**：**基准 = 所卖模型名对应厂商的官方文档**；某能力失败时，背后是云平台就先用该平台写法复测，平台官方也失败才算平台不支持（`text-checks.md`）。三段完整请求响应并排、字段差异、错误矩阵两边同一批输入；文本加「文档 / 官方实测 / 供应商」三列表；非功能项结论按 `nonfunctional-checks.md` 填进 `diffs` / `sections` / `internal.risks`。
 5. **成本**：每档供应商价 ÷ 官方价、计费时点、币种汇率；网关能不能接逐条对 `references/<厂商>.md`「接入网关要求」，归入三档（不改代码 / 网关要改 / 要对方补）。
 6. **出报告**：`python3 -I scripts/build_report.py --init video|text <任务>/findings.json` 出骨架 → 填（原始记录用 `{"jsonl","label"}` 引用，不手抄）→ `python3 -I scripts/build_report.py <任务>/findings.json --pdf`。校验会挡缺必填项 / 真伪必查项、外发版漏内部线路名、像 key 的串。**发之前看生成器出的换页拼图**（每个换页处上下各一条，只看整页缩略图会漏割裂）。测的是官方本身（如官方新开的业务区）也照出，对照已有官方基准。
+   **出完自己查**：看一眼总览 + 换页拼图，排版和内容核对自己做。
 7. **收尾**：新测到的官方事实写回用户笔记 `audits/references-local/<厂商>.md`（标日期和出处；用户在开发本 skill 时才改 `references/`）；任务目录留 jsonl、findings.json 和两份产出。
 
 ## 脚本（scripts/）
@@ -94,7 +98,8 @@ English: see `references/en/SKILL.en.md` (same procedure).
 | `nonfunctional-checks.md` | 非功能项：输出 token 虚报、上下文截断、改写 / 加审核、数据留存、法务与条款、地域延迟、中断与失败退款 |
 | `ali-wan.md` · `minimax-h3.md` · `seedance.md` | 视频：阿里百炼 wan3、MiniMax H3、火山方舟 / BytePlus Seedance（官方接口、价格、成片指纹、样片、接入要求） |
 | `claude.md` · `openai.md` · `grok-xai.md` · `gemini.md` | 文本：Claude（一方 / Bedrock / 经 OpenAI 格式转换）、OpenAI（一方 / Azure OpenAI / Bedrock 托管 / Codex 后端）、Grok、Gemini |
-| `kimi-k3.md` · `glm.md` · `deepseek.md` | 文本：Kimi、智谱 GLM、DeepSeek（计数接口、指纹、价目、哪些判真伪招数有效） |
+| `kimi-k3.md` · `glm.md` · `deepseek.md` | 文本：Kimi（含 K3.1 Pro）、智谱 GLM、DeepSeek（计数接口、指纹、价目、哪些判真伪招数有效） |
+| `qwen.md` · `minimax-text.md` | 文本：通义千问 Qwen3.8（百炼）、MiniMax M3 系列（官方实测、报错原文、价目） |
 | `new-api.md` · `sub2api.md` | 中转形态：new-api / one-api 多分组、倍率、参数透传、日志对账；订阅号池识别、后台只读 |
 | `en/SKILL.en.md` | 本文件的英文版（流程相同；其余 reference 是中文，agent 可直接读） |
 
